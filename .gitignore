@@ -1,0 +1,26 @@
+# Logs & internal
+*.log
+*.bak
+__pycache__/
+*.pyc
+
+# Internal tooling
+export_hermes_run.py
+export_spark_arena_model.py
+organize_for_hermes.py
+screenshot_animations.py
+build_site.py
+mtp_probe.py
+_simple_test.py
+_test_parse.py
+MIMO_RECOVERY.md
+
+# Internal results
+results/downloads/
+results/v2-agent-grade/
+site/
+
+# Environment
+.env
+*.key
+/tmp/.or_key*

@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Spiral Galaxy</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background: #000;
+    overflow: hidden;
+  }
+  canvas {
+    display: block;
+    width: 100vw;
+    height: 100vh;
+  }
+</style>
+</head>
+<body>
+<canvas id="galaxy"></canvas>
+<script>
+(() => {
+  const canvas = document.getElementById('galaxy');
+  const ctx = canvas.getContext('2d');
+
+  let W = 0, H = 0, cx = 0, cy = 0, scale = 1;
+
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    cx = W / 2;
+    cy = H / 2;
+    scale = Math.min(W, H) / 900;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  // ---- Star palette (subtle color variation) ----
+  const palette = [
+    { r: 255, g: 240, b: 210 }, // warm white
+    { r: 255, g: 220, b: 180 }, // amber
+    { r: 255, g: 255, b: 255 }, // pure white
+    { r: 200, g: 220, b: 255 }, // blue-white
+    { r: 170, g: 200, b: 255 }, // blue
+    { r: 255, g: 200, b: 220 }, // pinkish
+    { r: 255, g: 180, b: 160 }, // peach
+  ];
+
+  function pickColor() {
+    return palette[(Math.random() * palette.length) | 0];
+  }
+
+  // ---- Build galaxy ----
+  const ARMS = 4;
+  const ARM_TIGHTNESS = 0.22; // how tightly wound
+  const STARS = 1400;
+  const DUST = 220;
+
+  const stars = [];
+  const dust = [];
+
+  // logarithmic spiral: r = a * exp(b * theta)
+  // We sample stars around arms with gaussian scatter.
+
+  function buildGalaxy() {
+    stars.length = 0;
+    dust.length = 0;
+
+    for (let i = 0; i < STARS; i++) {
+      // distance distribution: more stars near center, exponentially fewer outward
+      const t = Math.pow(Math.random(), 0.6); // bias toward 0
+      const maxR = 360;
+      const r = t * maxR;
+
+      // pick an arm
+      const arm = (Math.random() * ARMS) | 0;
+      const armOffset = (arm / ARMS) * Math.PI * 2;
+
+      // base spiral angle for this radius
+      const baseAngle = Math.log(r + 6) / ARM_TIGHTNESS;
+
+      // scatter perpendicular and along arm
+      const scatter = (1 - t) * 0.9 + 0.15; // more scatter outward
+      const angleJitter = (Math.random() - 0.5) * scatter * 1.1;
+      const radialJitter = (Math.random() - 0.5) * scatter * 40;
+
+      const angle = baseAngle + armOffset + angleJitter;
+      const radius = r + radialJitter;
+
+      // size: small, with occasional bigger
+      const sizeRoll = Math.random();
+      let size;
+      if (sizeRoll > 0.985) size = 2.2 + Math.random() * 1.6;
+      else if (sizeRoll > 0.85) size = 1.2 + Math.random() * 0.8;
+      else size = 0.4 + Math.random() * 0.8;
+
+      // orbital speed: inner faster (Keplerian-ish, but not too extreme)
+      const speed = 0.012 / (0.6 + Math.sqrt(radius) * 0.08);
+
+      const color = pickColor();
+
+      // brightness
+      const brightness = 0.5 + Math.random() * 0.5;
+
+      stars.push({
+        r: radius,
+        a: angle,
+        size,
+        speed,
+        color,
+        brightness,
+        twinklePhase: Math.random() * Math.PI * 2,
+        twinkleSpeed: 0.5 + Math.random() * 2.5,
+      });
+    }
+
+    // dust particles (darker, larger, blurred)
+    for (let i = 0; i < DUST; i++) {
+      const t = Math.pow(Math.random(), 0.5);
+      const r = t * 340;
+      const arm = (Math.random() * ARMS) | 0;
+      const armOffset = (arm / ARMS) * Math.PI * 2;
+      const baseAngle = Math.log(r + 6) / ARM_TIGHTNESS;
+      const scatter = (1 - t) * 0.6 + 0.1;
+      const angle = baseAngle + armOffset + (Math.random() - 0.5) * scatter * 0.9;
+      const radius = r + (Math.random() - 0.5) * 30;
+
+      dust.push({
+        r: radius,
+        a: angle,
+        size: 6 + Math.random() * 18,
+        speed: 0.012 / (0.6 + Math.sqrt(radius) * 0.08),
+        hue: Math.random() < 0.5 ? 20 : 280, // warm or violet dust
+        alpha: 0.04 + Math.random() * 0.08,
+      });
+    }
+  }
+
+  buildGalaxy();
+
+  // ---- Background distant stars (static) ----
+  const bgStars = [];
+  for (let i = 0; i < 400; i++) {
+    bgStars.push({
+      x: Math.random(),
+      y: Math.random(),
+      size: Math.random() * 0.8 + 0.2,
+      brightness: Math.random() * 0.6 + 0.2,
+      twinklePhase: Math.random() * Math.PI * 2,
+      twinkleSpeed: 0.5 + Math.random() * 2,
+    });
+  }
+
+  // ---- Core glow (pre-rendered for performance) ----
+  const coreCanvas = document.createElement('canvas');
+  const coreCtx = coreCanvas.getContext('2d');
+  function renderCore() {
+    const size = 600;
+    coreCanvas.width = size;
+    coreCanvas.height = size;
+    const cc = coreCtx;
+    cc.clearRect(0, 0, size, size);
+    const c = size / 2;
+
+    // outer halo
+    let g = cc.createRadialGradient(c, c, 0, c, c, c);
+    g.addColorStop(0, 'rgba(255, 230, 190, 0.9)');
+    g.addColorStop(0.08, 'rgba(255, 215, 170, 0.55)');
+    g.addColorStop(0.2, 'rgba(255, 180, 140, 0.18)');
+    g.addColorStop(0.45, 'rgba(200, 140, 200, 0.06)');
+    g.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    cc.fillStyle = g;
+    cc.fillRect(0, 0, size, size);
+
+    // bright core
+    g = cc.createRadialGradient(c, c, 0, c, c, size * 0.12);
+    g.addColorStop(0, 'rgba(255, 255, 245, 1)');
+    g.addColorStop(0.4, 'rgba(255, 240, 210, 0.85)');
+    g.addColorStop(1, 'rgba(255, 200, 150, 0)');
+    cc.fillStyle = g;
+    cc.fillRect(0, 0, size, size);
+  }
+  renderCore();
+
+  // ---- Animation ----
+  let lastTime = performance.now();
+  let time = 0;
+
+  function draw(now) {
+    const dt = Math.min(0.05, (now - lastTime) / 1000);
+    lastTime = now;
+    time += dt;
+
+    // fade background slightly for motion trails on dust (subtle)
+    ctx.fillStyle = 'rgba(0, 0, 0, 1)';
+    ctx.fillRect(0, 0, W, H);
+
+    // distant background stars
+    ctx.save();
+    for (const s of bgStars) {
+      const tw = 0.6 + 0.4 * Math.sin(time * s.twinkleSpeed + s.twinklePhase);
+      const a = s.brightness * tw;
+      ctx.fillStyle = `rgba(220, 230, 255, ${a})`;
+      ctx.fillRect(s.x * W, s.y * H, s.size, s.size);
+    }
+    ctx.restore();
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(scale, scale);
+
+    // tilt the galaxy slightly for depth
+    ctx.rotate(-0.25);
+    ctx.transform(1, 0, 0, 0.62, 0, 0); // vertical squash -> disk perspective
+
+    // outer nebula glow
+    const nebGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, 380);
+    nebGrad.addColorStop(0, 'rgba(120, 80, 140, 0.10)');
+    nebGrad.addColorStop(0.4, 'rgba(80, 60, 130, 0.05)');
+    nebGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = nebGrad;
+    ctx.beginPath();
+    ctx.arc(0, 0, 380, 0, Math.PI * 2);
+    ctx.fill();
+
+    // dust (drawn first, behind stars)
+    ctx.globalCompositeOperation = 'lighter';
+    for (const d of dust) {
+      d.a += d.speed * dt * 60 * 0.3;
+      const x = Math.cos(d.a) * d.r;
+      const y = Math.sin(d.a) * d.r;
+      const grad = ctx.createRadialGradient(x, y, 0, x, y, d.size);
+      if (d.hue === 20) {
+        grad.addColorStop(0, `rgba(180, 120, 90, ${d.alpha})`);
+        grad.addColorStop(1, 'rgba(180, 120, 90, 0)');
+      } else {
+        grad.addColorStop(0, `rgba(120, 90, 180, ${d.alpha})`);
+        grad.addColorStop(1, 'rgba(120, 90, 180, 0)');
+      }
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(x, y, d.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // stars
+    for (const s of stars) {
+      s.a += s.speed * dt * 60 * 0.3;
+      const x = Math.cos(s.a) * s.r;
+      const y = Math.sin(s.a) * s.r;
+
+      const tw = 0.65 + 0.35 * Math.sin(time * s.twinkleSpeed + s.twinklePhase);
+      const a = s.brightness * tw;
+      const { r, g, b } = s.color;
+
+      // glow for bigger stars
+      if (s.size > 1.2) {
+        const glow = ctx.createRadialGradient(x, y, 0, x, y, s.size * 4);
+        glow.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${a * 0.6})`);
+        glow.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(x, y, s.size * 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${a})`;
+      ctx.beginPath();
+      ctx.arc(x, y, s.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // core glow (drawn on top, additive)
+    const coreSize = 600;
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.drawImage(coreCanvas, -coreSize / 2, -coreSize / 2, coreSize, coreSize);
+
+    // central bright point
+    const pulse = 0.9 + 0.1 * Math.sin(time * 2.0);
+    const cg = ctx.createRadialGradient(0, 0, 0, 0, 0, 40 * pulse);
+    cg.addColorStop(0, 'rgba(255, 255, 250, 1)');
+    cg.addColorStop(0.3, 'rgba(255, 240, 210, 0.8)');
+    cg.addColorStop(1, 'rgba(255, 200, 150, 0)');
+    ctx.fillStyle = cg;
+    ctx.beginPath();
+    ctx.arc(0, 0, 40 * pulse, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+
+    requestAnimationFrame(draw);
+  }
+
+  requestAnimationFrame((t) => { lastTime = t; draw(t); });
+})();
+</script>
+</body>
+</html>

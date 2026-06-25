@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Solar System</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #000; overflow: hidden; }
+canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+let W, H, cx, cy;
+
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+  cx = W / 2;
+  cy = H / 2;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// Stars
+const stars = [];
+for (let i = 0; i < 600; i++) {
+  stars.push({
+    x: Math.random() * 3000 - 500,
+    y: Math.random() * 3000 - 500,
+    r: Math.random() * 1.5 + 0.3,
+    brightness: Math.random(),
+    twinkleSpeed: Math.random() * 0.02 + 0.005,
+    twinkleOffset: Math.random() * Math.PI * 2
+  });
+}
+
+// Planets
+const planets = [
+  { name: 'Mercury', radius: 4, orbit: 65, speed: 0.025, color: '#b5b5b5', glow: '#d0d0d0', angle: Math.random() * Math.PI * 2 },
+  { name: 'Venus',   radius: 7, orbit: 100, speed: 0.018, color: '#e8cda0', glow: '#f0dca0', angle: Math.random() * Math.PI * 2 },
+  { name: 'Earth',   radius: 8, orbit: 145, speed: 0.014, color: '#4a90d9', glow: '#6ab0ff', angle: Math.random() * Math.PI * 2, hasMoon: true },
+  { name: 'Mars',    radius: 5, orbit: 190, speed: 0.011, color: '#c1440e', glow: '#e06030', angle: Math.random() * Math.PI * 2 },
+  { name: 'Jupiter', radius: 18, orbit: 270, speed: 0.006, color: '#c88b3a', glow: '#e0a850', angle: Math.random() * Math.PI * 2, bands: true },
+  { name: 'Saturn',  radius: 15, orbit: 350, speed: 0.004, color: '#d4b86a', glow: '#e8cc80', angle: Math.random() * Math.PI * 2, rings: true },
+  { name: 'Uranus',  radius: 11, orbit: 420, speed: 0.003, color: '#72b5c4', glow: '#90d0e0', angle: Math.random() * Math.PI * 2 },
+  { name: 'Neptune', radius: 10, orbit: 490, speed: 0.002, color: '#3f54ba', glow: '#5570dd', angle: Math.random() * Math.PI * 2 }
+];
+
+// Asteroid belt particles
+const asteroids = [];
+for (let i = 0; i < 200; i++) {
+  const orbit = 225 + Math.random() * 30;
+  asteroids.push({
+    orbit: orbit,
+    angle: Math.random() * Math.PI * 2,
+    speed: 0.008 + Math.random() * 0.004,
+    r: Math.random() * 1.2 + 0.3,
+    brightness: Math.random() * 0.5 + 0.3
+  });
+}
+
+// Comet
+const comet = {
+  orbitA: 550, orbitB: 180, speed: 0.003, angle: 0,
+  tailLength: 80, tailWidth: 3
+};
+
+function drawStars(time) {
+  for (const s of stars) {
+    const twinkle = 0.5 + 0.5 * Math.sin(time * s.twinkleSpeed + s.twinkleOffset);
+    const alpha = s.brightness * twinkle;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+    ctx.fill();
+  }
+}
+
+function drawSun(time) {
+  const pulse = 1 + 0.05 * Math.sin(time * 0.003);
+  const sunRadius = 30 * pulse;
+
+  // Outer corona
+  for (let i = 5; i >= 1; i--) {
+    const r = sunRadius + i * 18;
+    const alpha = 0.03 * (6 - i);
+    const grad = ctx.createRadialGradient(cx, cy, sunRadius * 0.5, cx, cy, r);
+    grad.addColorStop(0, `rgba(255,200,50,${alpha})`);
+    grad.addColorStop(1, 'rgba(255,150,20,0)');
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fillStyle = grad;
+    ctx.fill();
+  }
+
+  // Sun glow
+  const glowGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, sunRadius * 3);
+  glowGrad.addColorStop(0, 'rgba(255,220,100,0.4)');
+  glowGrad.addColorStop(0.3, 'rgba(255,180,50,0.15)');
+  glowGrad.addColorStop(1, 'rgba(255,100,20,0)');
+  ctx.beginPath();
+  ctx.arc(cx, cy, sunRadius * 3, 0, Math.PI * 2);
+  ctx.fillStyle = glowGrad;
+  ctx.fill();
+
+  // Sun body
+  const sunGrad = ctx.createRadialGradient(cx - 5, cy - 5, 0, cx, cy, sunRadius);
+  sunGrad.addColorStop(0, '#fff8e0');
+  sunGrad.addColorStop(0.3, '#ffe44d');
+  sunGrad.addColorStop(0.7, '#ff9900');
+  sunGrad.addColorStop(1, '#cc5500');
+  ctx.beginPath();
+  ctx.arc(cx, cy, sunRadius, 0, Math.PI * 2);
+  ctx.fillStyle = sunGrad;
+  ctx.fill();
+
+  // Sun surface texture
+  ctx.save();
+  ctx.globalCompositeOperation = 'overlay';
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2 + time * 0.0005;
+    const d = sunRadius * 0.4;
+    const sx = cx + Math.cos(a) * d;
+    const sy = cy + Math.sin(a) * d;
+    const spotGrad = ctx.createRadialGradient(sx, sy, 0, sx, sy, sunRadius * 0.35);
+    spotGrad.addColorStop(0, 'rgba(255,255,200,0.3)');
+    spotGrad.addColorStop(1, 'rgba(255,200,100,0)');
+    ctx.beginPath();
+    ctx.arc(sx, sy, sunRadius * 0.35, 0, Math.PI * 2);
+    ctx.fillStyle = spotGrad;
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawOrbitPath(orbitRadius) {
+  ctx.beginPath();
+  ctx.arc(cx, cy, orbitRadius, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+  ctx.lineWidth = 0.5;
+  ctx.stroke();
+}
+
+function drawPlanet(p, time) {
+  const x = cx + Math.cos(p.angle) * p.orbit;
+  const y = cy + Math.sin(p.angle) * p.orbit;
+
+  // Planet glow
+  const glowGrad = ctx.createRadialGradient(x, y, 0, x, y, p.radius * 3);
+  glowGrad.addColorStop(0, p.glow + '40');
+  glowGrad.addColorStop(1, p.glow + '00');
+  ctx.beginPath();
+  ctx.arc(x, y, p.radius * 3, 0, Math.PI * 2);
+  ctx.fillStyle = glowGrad;
+  ctx.fill();
+
+  // Saturn rings (behind planet)
+  if (p.rings) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(0.4);
+    ctx.scale(1, 0.35);
+    // Outer ring
+    ctx.beginPath();
+    ctx.arc(0, 0, p.radius * 2.2, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(210,180,120,0.5)';
+    ctx.lineWidth = 4;
+    ctx.stroke();
+    // Inner ring
+    ctx.beginPath();
+    ctx.arc(0, 0, p.radius * 1.6, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(190,160,100,0.4)';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // Planet body
+  const pGrad = ctx.createRadialGradient(x - p.radius * 0.3, y - p.radius * 0.3, 0, x, y, p.radius);
+  pGrad.addColorStop(0, '#fff');
+  pGrad.addColorStop(0.3, p.glow);
+  pGrad.addColorStop(0.7, p.color);
+  pGrad.addColorStop(1, '#000');
+  ctx.beginPath();
+  ctx.arc(x, y, p.radius, 0, Math.PI * 2);
+  ctx.fillStyle = pGrad;
+  ctx.fill();
+
+  // Jupiter bands
+  if (p.bands) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(x, y, p.radius, 0, Math.PI * 2);
+    ctx.clip();
+    for (let i = -3; i <= 3; i++) {
+      const bandY = y + i * p.radius * 0.35;
+      ctx.fillStyle = i % 2 === 0 ? 'rgba(180,120,50,0.3)' : 'rgba(200,160,80,0.2)';
+      ctx.fillRect(x - p.radius, bandY - p.radius * 0.12, p.radius * 2, p.radius * 0.24);
+    }
+    // Great Red Spot
+    ctx.beginPath();
+    ctx.ellipse(x + p.radius * 0.3, y + p.radius * 0.2, p.radius * 0.25, p.radius * 0.15, 0, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(180,60,30,0.4)';
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Earth's moon
+  if (p.hasMoon) {
+    const moonAngle = time * 0.015;
+    const moonDist = p.radius * 2.5;
+    const mx = x + Math.cos(moonAngle) * moonDist;
+    const my = y + Math.sin(moonAngle) * moonDist;
+    const moonGrad = ctx.createRadialGradient(mx - 1, my - 1, 0, mx, my, 2.5);
+    moonGrad.addColorStop(0, '#eee');
+    moonGrad.addColorStop(1, '#888');
+    ctx.beginPath();
+    ctx.arc(mx, my, 2.5, 0, Math.PI * 2);
+    ctx.fillStyle = moonGrad;
+    ctx.fill();
+  }
+}
+
+function drawAsteroidBelt(time) {
+  for (const a of asteroids) {
+    const x = cx + Math.cos(a.angle) * a.orbit;
+    const y = cy + Math.sin(a.angle) * a.orbit;
+    ctx.beginPath();
+    ctx.arc(x, y, a.r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(160,140,120,${a.brightness})`;
+    ctx.fill();
+  }
+}
+
+function drawComet(time) {
+  const t = comet.angle;
+  const x = cx + Math.cos(t) * comet.orbitA;
+  const y = cy + Math.sin(t) * comet.orbitB;
+
+  // Tail direction (away from sun)
+  const dx = x - cx;
+  const dy = y - cy;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  const nx = dx / dist;
+  const ny = dy / dist;
+
+  // Comet tail
+  const tailGrad = ctx.createLinearGradient(
+    x, y,
+    x + nx * comet.tailLength,
+    y + ny * comet.tailLength
+  );
+  tailGrad.addColorStop(0, 'rgba(180,220,255,0.6)');
+  tailGrad.addColorStop(0.3, 'rgba(120,180,255,0.3)');
+  tailGrad.addColorStop(1, 'rgba(80,120,200,0)');
+
+  ctx.beginPath();
+  const perpX = -ny;
+  const perpY = nx;
+  const halfW = comet.tailWidth;
+  ctx.moveTo(x + perpX * halfW, y + perpY * halfW);
+  ctx.lineTo(x + nx * comet.tailLength + perpX * halfW * 0.2, y + ny * comet.tailLength + perpY * halfW * 0.2);
+  ctx.lineTo(x + nx * comet.tailLength - perpX * halfW * 0.2, y + ny * comet.tailLength - perpY * halfW * 0.2);
+  ctx.lineTo(x - perpX * halfW, y - perpY * halfW);
+  ctx.closePath();
+  ctx.fillStyle = tailGrad;
+  ctx.fill();
+
+  // Comet head
+  const headGrad = ctx.createRadialGradient(x, y, 0, x, y, 5);
+  headGrad.addColorStop(0, '#fff');
+  headGrad.addColorStop(0.5, 'rgba(180,220,255,0.8)');
+  headGrad.addColorStop(1, 'rgba(100,150,255,0)');
+  ctx.beginPath();
+  ctx.arc(x, y, 5, 0, Math.PI * 2);
+  ctx.fillStyle = headGrad;
+  ctx.fill();
+}
+
+function drawLabels(time) {
+  ctx.font = '10px monospace';
+  ctx.textAlign = 'center';
+  for (const p of planets) {
+    const x = cx + Math.cos(p.angle) * p.orbit;
+    const y = cy + Math.sin(p.angle) * p.orbit;
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.fillText(p.name, x, y + p.radius + 14);
+  }
+}
+
+function animate(time) {
+  ctx.fillStyle = '#050510';
+  ctx.fillRect(0, 0, W, H);
+
+  // Subtle nebula background
+  const nebGrad = ctx.createRadialGradient(cx * 0.7, cy * 0.6, 0, cx * 0.7, cy * 0.6, W * 0.6);
+  nebGrad.addColorStop(0, 'rgba(30,10,50,0.15)');
+  nebGrad.addColorStop(0.5, 'rgba(10,20,50,0.08)');
+  nebGrad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = nebGrad;
+  ctx.fillRect(0, 0, W, H);
+
+  const nebGrad2 = ctx.createRadialGradient(cx * 1.3, cy * 1.2, 0, cx * 1.3, cy * 1.2, W * 0.4);
+  nebGrad2.addColorStop(0, 'rgba(10,30,50,0.1)');
+  nebGrad2.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = nebGrad2;
+  ctx.fillRect(0, 0, W, H);
+
+  drawStars(time);
+
+  // Draw orbit paths
+  for (const p of planets) {
+    drawOrbitPath(p.orbit);
+  }
+
+  drawSun(time);
+  drawAsteroidBelt(time);
+  drawComet(time);
+
+  // Update and draw planets
+  for (const p of planets) {
+    p.angle += p.speed;
+    drawPlanet(p, time);
+  }
+
+  // Update asteroids
+  for (const a of asteroids) {
+    a.angle += a.speed;
+  }
+
+  // Update comet
+  comet.angle += comet.speed;
+
+  drawLabels(time);
+
+  requestAnimationFrame(animate);
+}
+
+requestAnimationFrame(animate);
+</script>
+</body>
+</html>

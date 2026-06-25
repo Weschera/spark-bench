@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DNA Double Helix</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #06060f; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
+canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="dna"></canvas>
+<script>
+const canvas = document.getElementById('dna');
+const ctx = canvas.getContext('2d');
+
+let W, H, centerX, centerY;
+function resize() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+    centerX = W / 2;
+    centerY = H / 2;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// DNA parameters
+const NUM_NODES = 40;
+const HELIX_RADIUS = 120;
+const VERTICAL_SPACING = 28;
+const TOTAL_HEIGHT = NUM_NODES * VERTICAL_SPACING;
+const ROTATION_SPEED = 0.012;
+
+let phase = 0;
+
+// Color helpers
+function hslToRgb(h, s, l) {
+    h /= 360; s /= 100; l /= 100;
+    let r, g, b;
+    if (s === 0) { r = g = b = l; }
+    else {
+        const hue2rgb = (p, q, t) => {
+            if (t < 0) t += 1; if (t > 1) t -= 1;
+            if (t < 1/6) return p + (q - p) * 6 * t;
+            if (t < 1/2) return q;
+            if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+            return p;
+        };
+        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        const p = 2 * l - q;
+        r = hue2rgb(p, q, h + 1/3);
+        g = hue2rgb(p, q, h);
+        b = hue2rgb(p, q, h - 1/3);
+    }
+    return [Math.round(r*255), Math.round(g*255), Math.round(b*255)];
+}
+
+function getStrandColor(strand, t, depthFactor) {
+    // Strand 0: warm (red-orange-pink), Strand 1: cool (blue-cyan-purple)
+    const hueBase = strand === 0 ? 0 : 220;
+    const hue = (hueBase + t * 40) % 360;
+    const sat = 70 + depthFactor * 20;
+    const lit = 45 + depthFactor * 30;
+    const [r, g, b] = hslToRgb(hue, sat, lit);
+    return `rgb(${r},${g},${b})`;
+}
+
+function getRungColor(t, depthFactor) {
+    const hue = 280 + t * 60;
+    const [r, g, b] = hslToRgb(hue, 50, 35 + depthFactor * 25);
+    return `rgb(${r},${g},${b})`;
+}
+
+function getGlowColor(strand, t, depthFactor) {
+    const hueBase = strand === 0 ? 15 : 230;
+    const hue = (hueBase + t * 30) % 360;
+    const [r, g, b] = hslToRgb(hue, 80, 60 + depthFactor * 20);
+    return `rgba(${r},${g},${b},0.35)`;
+}
+
+function getPoint(nodeIndex, strand, phase) {
+    const t = nodeIndex / NUM_NODES;
+    const angle = (nodeIndex / NUM_NODES) * Math.PI * 2 * 3 + (strand === 1 ? Math.PI : 0) + phase;
+    const x = HELIX_RADIUS * Math.cos(angle);
+    const y = -TOTAL_HEIGHT / 2 + nodeIndex * VERTICAL_SPACING;
+    const z = HELIX_RADIUS * Math.sin(angle);
+    return { x, y, z, t };
+}
+
+function drawGlow(x, y, radius, color) {
+    const grad = ctx.createRadialGradient(x, y, 0, x, y, radius * 3);
+    grad.addColorStop(0, color);
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(x, y, radius * 3, 0, Math.PI * 2);
+    ctx.fill();
+}
+
+function drawNode(x, y, z, radius, color, depthFactor) {
+    const alpha = 0.5 + depthFactor * 0.5;
+    const adjustedRadius = radius * (0.6 + depthFactor * 0.4);
+
+    // Glow
+    ctx.globalAlpha = alpha * 0.4;
+    drawGlow(x, y, adjustedRadius, color);
+
+    // Node
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(x, y, adjustedRadius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Highlight
+    ctx.globalAlpha = alpha * 0.6;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(x - adjustedRadius * 0.25, y - adjustedRadius * 0.25, adjustedRadius * 0.35, 0, Math.PI * 2);
+    ctx.fill();
+}
+
+function drawRung(x1, y1, z1, x2, y2, z2, color, depthFactor) {
+    const alpha = 0.25 + depthFactor * 0.35;
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2 + depthFactor * 1.5;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+}
+
+function render() {
+    // Clear with subtle fade for motion trail
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = 'rgba(6, 6, 15, 0.92)';
+    ctx.fillRect(0, 0, W, H);
+
+    // Collect all elements with depth for sorting
+    const elements = [];
+
+    for (let i = 0; i < NUM_NODES; i++) {
+        const p0 = getPoint(i, 0, phase);
+        const p1 = getPoint(i, 1, phase);
+
+        const depth0 = (p0.z + HELIX_RADIUS) / (2 * HELIX_RADIUS);
+        const depth1 = (p1.z + HELIX_RADIUS) / (2 * HELIX_RADIUS);
+        const avgDepth = (depth0 + depth1) / 2;
+        const avgZ = (p0.z + p1.z) / 2;
+
+        const screenX0 = centerX + p0.x;
+        const screenY0 = centerY + p0.y;
+        const screenX1 = centerX + p1.x;
+        const screenY1 = centerY + p1.y;
+
+        // Rung element (drawn behind nodes)
+        elements.push({
+            type: 'rung',
+            z: avgZ,
+            depth: avgDepth,
+            x1: screenX0, y1: screenY0,
+            x2: screenX1, y2: screenY1,
+            t: i / NUM_NODES
+        });
+
+        // Node elements
+        elements.push({
+            type: 'node',
+            z: p0.z,
+            depth: depth0,
+            x: screenX0, y: screenY0,
+            strand: 0,
+            t: i / NUM_NODES
+        });
+
+        elements.push({
+            type: 'node',
+            z: p1.z,
+            depth: depth1,
+            x: screenX1, y: screenY1,
+            strand: 1,
+            t: i / NUM_NODES
+        });
+    }
+
+    // Sort back to front
+    elements.sort((a, b) => a.z - b.z);
+
+    // Draw all elements
+    for (const el of elements) {
+        if (el.type === 'rung') {
+            const color = getRungColor(el.t, el.depth);
+            drawRung(el.x1, el.y1, el.z, el.x2, el.y2, el.z, color, el.depth);
+        } else {
+            const color = getStrandColor(el.strand, el.t, el.depth);
+            const radius = 5 + el.depth * 3;
+            drawNode(el.x, el.y, el.z, radius, color, el.depth);
+        }
+    }
+
+    // Draw connecting lines along each strand
+    for (let strand = 0; strand < 2; strand++) {
+        ctx.beginPath();
+        for (let i = 0; i < NUM_NODES; i++) {
+            const p = getPoint(i, strand, phase);
+            const sx = centerX + p.x;
+            const sy = centerY + p.y;
+            if (i === 0) ctx.moveTo(sx, sy);
+            else ctx.lineTo(sx, sy);
+        }
+        const depthMid = 0.5;
+        const color = getStrandColor(strand, 0.5, depthMid);
+        ctx.strokeStyle = color;
+        ctx.globalAlpha = 0.3;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+    }
+
+    ctx.globalAlpha = 1;
+}
+
+function animate(timestamp) {
+    phase += ROTATION_SPEED;
+    render();
+    requestAnimationFrame(animate);
+}
+
+requestAnimationFrame(animate);
+</script>
+</body>
+</html>

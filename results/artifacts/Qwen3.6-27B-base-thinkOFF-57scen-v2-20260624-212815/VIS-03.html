@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DNA Double Helix</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #000; overflow: hidden; }
+canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+let W, H;
+function resize() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+const NUM_NODES = 60;
+const HELIX_RADIUS = 120;
+const VERTICAL_SPACING = 18;
+const ROTATION_SPEED = 0.015;
+const PERSPECTIVE = 800;
+
+let phase = 0;
+
+function getNodePosition(index, phaseOffset) {
+    const angle = index * 0.25 + phase + phaseOffset;
+    const x = Math.sin(angle) * HELIX_RADIUS;
+    const z = Math.cos(angle) * HELIX_RADIUS;
+    const y = (index - NUM_NODES / 2) * VERTICAL_SPACING;
+    return { x, y, z, angle };
+}
+
+function project(x, y, z) {
+    const scale = PERSPECTIVE / (PERSPECTIVE + z);
+    return {
+        sx: W / 2 + x * scale,
+        sy: H / 2 + y * scale,
+        scale: scale
+    };
+}
+
+function drawBackground() {
+    const grad = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Math.max(W, H) * 0.7);
+    grad.addColorStop(0, '#0a0a1a');
+    grad.addColorStop(1, '#020208');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+}
+
+function drawRung(p1, p2, depth) {
+    const alpha = 0.15 + depth * 0.25;
+    const width = 1.5 + depth * 2;
+
+    // Base rung line
+    ctx.beginPath();
+    ctx.moveTo(p1.sx, p1.sy);
+    ctx.lineTo(p2.sx, p2.sy);
+    ctx.strokeStyle = `rgba(180, 180, 220, ${alpha})`;
+    ctx.lineWidth = width;
+    ctx.stroke();
+
+    // Glowing center
+    const mx = (p1.sx + p2.sx) / 2;
+    const my = (p1.sy + p2.sy) / 2;
+    const glowSize = 3 + depth * 4;
+    const glow = ctx.createRadialGradient(mx, my, 0, mx, my, glowSize);
+    glow.addColorStop(0, `rgba(200, 200, 255, ${alpha * 0.6})`);
+    glow.addColorStop(1, `rgba(200, 200, 255, 0)`);
+    ctx.fillStyle = glow;
+    ctx.fillRect(mx - glowSize, my - glowSize, glowSize * 2, glowSize * 2);
+}
+
+function drawNode(sx, sy, scale, strandColor, depth) {
+    const radius = 4 + scale * 5;
+    const alpha = 0.4 + depth * 0.6;
+
+    // Outer glow
+    const glow = ctx.createRadialGradient(sx, sy, 0, sx, sy, radius * 3);
+    glow.addColorStop(0, `rgba(${strandColor.r}, ${strandColor.g}, ${strandColor.b}, ${alpha * 0.4})`);
+    glow.addColorStop(1, `rgba(${strandColor.r}, ${strandColor.g}, ${strandColor.b}, 0)`);
+    ctx.beginPath();
+    ctx.arc(sx, sy, radius * 3, 0, Math.PI * 2);
+    ctx.fillStyle = glow;
+    ctx.fill();
+
+    // Core
+    const core = ctx.createRadialGradient(sx, sy, 0, sx, sy, radius);
+    core.addColorStop(0, `rgba(${Math.min(255, strandColor.r + 80)}, ${Math.min(255, strandColor.g + 80)}, ${Math.min(255, strandColor.b + 80)}, ${alpha})`);
+    core.addColorStop(0.5, `rgba(${strandColor.r}, ${strandColor.g}, ${strandColor.b}, ${alpha * 0.8})`);
+    core.addColorStop(1, `rgba(${strandColor.r}, ${strandColor.g}, ${strandColor.b}, ${alpha * 0.3})`);
+    ctx.beginPath();
+    ctx.arc(sx, sy, radius, 0, Math.PI * 2);
+    ctx.fillStyle = core;
+    ctx.fill();
+}
+
+function drawStrandCurve(points, color) {
+    if (points.length < 2) return;
+
+    ctx.beginPath();
+    ctx.moveTo(points[0].sx, points[0].sy);
+
+    for (let i = 1; i < points.length - 1; i++) {
+        const xc = (points[i].sx + points[i + 1].sx) / 2;
+        const yc = (points[i].sy + points[i + 1].sy) / 2;
+        ctx.quadraticCurveTo(points[i].sx, points[i].sy, xc, yc);
+    }
+
+    const last = points[points.length - 1];
+    ctx.lineTo(last.sx, last.sy);
+
+    const alpha = 0.3;
+    ctx.strokeStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${alpha})`;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+}
+
+function getStrandColor(index, total, baseR, baseG, baseB) {
+    const t = index / total;
+    const r = Math.round(baseR + Math.sin(t * Math.PI * 2) * 30);
+    const g = Math.round(baseG + Math.cos(t * Math.PI * 2) * 20);
+    const b = Math.round(baseB + Math.sin(t * Math.PI * 3) * 25);
+    return {
+        r: Math.max(0, Math.min(255, r)),
+        g: Math.max(0, Math.min(255, g)),
+        b: Math.max(0, Math.min(255, b))
+    };
+}
+
+function animate() {
+    drawBackground();
+
+    phase += ROTATION_SPEED;
+
+    // Build slices with depth info for sorting
+    const slices = [];
+
+    for (let i = 0; i < NUM_NODES; i++) {
+        const node1 = getNodePosition(i, 0);
+        const node2 = getNodePosition(i, Math.PI);
+
+        const proj1 = project(node1.x, node1.y, node1.z);
+        const proj2 = project(node2.x, node2.y, node2.z);
+
+        const avgZ = (node1.z + node2.z) / 2;
+        const depth = (avgZ + HELIX_RADIUS) / (2 * HELIX_RADIUS);
+
+        const color1 = getStrandColor(i, NUM_NODES, 60, 140, 255);
+        const color2 = getStrandColor(i, NUM_NODES, 255, 100, 180);
+
+        slices.push({
+            index: i,
+            node1: { ...node1, proj: proj1, color: color1 },
+            node2: { ...node2, proj: proj2, color: color2 },
+            avgZ,
+            depth
+        });
+    }
+
+    // Sort back to front
+    slices.sort((a, b) => a.avgZ - b.avgZ);
+
+    // Draw rungs first
+    for (const slice of slices) {
+        drawRung(slice.node1.proj, slice.node2.proj, slice.depth);
+    }
+
+    // Draw strand curves
+    const strand1Points = [];
+    const strand2Points = [];
+    for (const slice of slices) {
+        strand1Points.push(slice.node1.proj);
+        strand2Points.push(slice.node2.proj);
+    }
+    // Re-sort by index for smooth curves
+    const sorted = [...slices].sort((a, b) => a.index - b.index);
+    const s1Pts = sorted.map(s => s.node1.proj);
+    const s2Pts = sorted.map(s => s.node2.proj);
+    drawStrandCurve(s1Pts, { r: 60, g: 140, b: 255 });
+    drawStrandCurve(s2Pts, { r: 255, g: 100, b: 180 });
+
+    // Draw nodes on top
+    for (const slice of slices) {
+        drawNode(slice.node1.proj.sx, slice.node1.proj.sy, slice.node1.proj.scale, slice.node1.color, slice.depth);
+        drawNode(slice.node2.proj.sx, slice.node2.proj.sy, slice.node2.proj.scale, slice.node2.color, slice.depth);
+    }
+
+    // Central axis glow
+    const axisGrad = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, HELIX_RADIUS * 1.5);
+    axisGrad.addColorStop(0, 'rgba(100, 100, 180, 0.03)');
+    axisGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = axisGrad;
+    ctx.fillRect(0, 0, W, H);
+
+    requestAnimationFrame(animate);
+}
+
+animate();
+</script>
+</body>
+</html>

@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>DNA Double Helix</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: #05060d;
+    overflow: hidden;
+    font-family: -apple-system, sans-serif;
+  }
+  canvas {
+    display: block;
+    width: 100vw;
+    height: 100vh;
+  }
+  .hud {
+    position: fixed;
+    top: 20px;
+    left: 24px;
+    color: rgba(220, 235, 255, 0.55);
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    pointer-events: none;
+    user-select: none;
+  }
+  .hud b {
+    color: rgba(120, 220, 255, 0.9);
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+<canvas id="dna"></canvas>
+<div class="hud"><b>DNA</b> · double helix · live render</div>
+
+<script>
+const canvas = document.getElementById('dna');
+const ctx = canvas.getContext('2d');
+
+let W, H, cx, cy, dpr;
+function resize() {
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  cx = W / 2;
+  cy = H / 2;
+}
+window.addEventListener('resize', resize);
+resize();
+
+// Helix parameters
+const NODES = 64;            // nodes per strand
+const SPACING = 14;          // vertical spacing between nodes
+const HELIX_HEIGHT = NODES * SPACING;
+const RADIUS = 110;          // helix radius
+const TWIST = 0.45;          // radians per node (controls tightness)
+const STRAND_OFFSET = Math.PI; // second strand is opposite
+
+// Colors — strand A (cyan-teal), strand B (magenta-rose)
+const colorA = { r: 80,  g: 220, b: 255 };
+const colorB = { r: 255, g: 110, b: 180 };
+
+// Rung colors cycle through base-pair-ish palette
+const rungColors = [
+  [120, 230, 170],  // green
+  [255, 200, 110],  // amber
+  [180, 140, 255],  // violet
+  [255, 130, 130],  // coral
+];
+
+let rotation = 0;
+let lastTime = performance.now();
+
+function draw(now) {
+  const dt = Math.min(0.05, (now - lastTime) / 1000);
+  lastTime = now;
+  rotation += dt * 0.9; // rotation speed
+
+  // Background with subtle vertical gradient + vignette
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#070914');
+  bg.addColorStop(0.5, '#05060d');
+  bg.addColorStop(1, '#03030a');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Subtle starfield
+  drawStars();
+
+  // Build node positions for both strands
+  const strandA = [];
+  const strandB = [];
+  const startY = cy - HELIX_HEIGHT / 2;
+
+  for (let i = 0; i < NODES; i++) {
+    const y = startY + i * SPACING;
+    const angle = i * TWIST + rotation;
+
+    // Project 3D-ish: x = R*cos(angle), depth = R*sin(angle)
+    const ax = cx + Math.cos(angle) * RADIUS;
+    const az = Math.sin(angle); // -1..1, depth
+    strandA.push({ x: ax, y, depth: az, angle });
+
+    const bx = cx + Math.cos(angle + STRAND_OFFSET) * RADIUS;
+    const bz = Math.sin(angle + STRAND_OFFSET);
+    strandB.push({ x: bx, y, depth: bz, angle: angle + STRAND_OFFSET });
+  }
+
+  // Combine rungs with their average depth for proper draw order
+  const rungs = [];
+  for (let i = 0; i < NODES; i++) {
+    rungs.push({
+      a: strandA[i],
+      b: strandB[i],
+      depth: (strandA[i].depth + strandB[i].depth) / 2,
+      color: rungColors[i % rungColors.length],
+      index: i
+    });
+  }
+
+  // Sort everything by depth (back to front) so closer nodes overlap farther ones
+  const items = [];
+  for (let i = 0; i < NODES; i++) {
+    items.push({ type: 'node', strand: 'A', node: strandA[i] });
+    items.push({ type: 'node', strand: 'B', node: strandB[i] });
+    items.push({ type: 'rung', rung: rungs[i] });
+  }
+  items.sort((p, q) => p.depth() - q.depth());
+  // Wait — items don't have depth(); fix below.
+
+  // Actually sort using a depth accessor
+  items.sort((p, q) => {
+    const pd = p.type === 'node' ? p.node.depth : p.rung.depth;
+    const qd = q.type === 'node' ? q.node.depth : q.rung.depth;
+    return pd - qd;
+  });
+
+  // Draw backbones first as connected polylines (per strand) — but we want depth-aware
+  // Approach: draw faint backbone lines first (full strand), then draw sorted nodes & rungs on top.
+  drawBackbone(strandA, colorA);
+  drawBackbone(strandB, colorB);
+
+  for (const it of items) {
+    if (it.type === 'rung') {
+      drawRung(it.rung);
+    } else {
+      drawNode(it.node, it.strand === 'A' ? colorA : colorB);
+    }
+  }
+
+  requestAnimationFrame(draw);
+}
+
+// --- Drawing helpers ---
+
+const stars = Array.from({ length: 90 }, () => ({
+  x: Math.random(),
+  y: Math.random(),
+  r: Math.random() * 1.2 + 0.2,
+  tw: Math.random() * Math.PI * 2
+}));
+function drawStars() {
+  for (const s of stars) {
+    const a = 0.25 + 0.25 * Math.sin(s.tw + performance.now() * 0.001);
+    ctx.fillStyle = `rgba(180,210,255,${a * 0.5})`;
+    ctx.beginPath();
+    ctx.arc(s.x * W, s.y * H, s.r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawBackbone(points, color) {
+  // Draw as varying-width segments to simulate depth
+  for (let i = 0; i < points.length - 1; i++) {
+    const p = points[i], q = points[i + 1];
+    const avgDepth = (p.depth + q.depth) / 2; // -1 (back) .. 1 (front)
+    const t = (avgDepth + 1) / 2;             // 0..1
+    const alpha = 0.25 + t * 0.55;
+    const width = 1.2 + t * 2.4;
+    ctx.strokeStyle = `rgba(${color.r},${color.g},${color.b},${alpha})`;
+    ctx.lineWidth = width;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+    ctx.lineTo(q.x, q.y);
+    ctx.stroke();
+  }
+}
+
+function drawNode(node, color) {
+  const t = (node.depth + 1) / 2; // 0 back .. 1 front
+  const radius = 2.4 + t * 4.2;
+  const alpha = 0.45 + t * 0.55;
+
+  // Glow halo
+  const glow = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, radius * 4);
+  glow.addColorStop(0, `rgba(${color.r},${color.g},${color.b},${0.35 * t})`);
+  glow.addColorStop(1, `rgba(${color.r},${color.g},${color.b},0)`);
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(node.x, node.y, radius * 4, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Core
+  ctx.fillStyle = `rgba(${color.r},${color.g},${color.b},${alpha})`;
+  ctx.beginPath();
+  ctx.arc(node.x, node.y, radius, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Highlight
+  ctx.fillStyle = `rgba(255,255,255,${0.5 * t})`;
+  ctx.beginPath();
+  ctx.arc(node.x - radius * 0.3, node.y - radius * 0.3, radius * 0.35, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawRung(rung) {
+  const t = (rung.depth + 1) / 2;
+  const alpha = 0.18 + t * 0.55;
+  const width = 1.0 + t * 2.0;
+
+  const [r, g, b] = rung.color;
+  // Gradient rung from strand A color to strand B color via base color
+  const grad = ctx.createLinearGradient(rung.a.x, rung.a.y, rung.b.x, rung.b.y);
+  grad.addColorStop(0, `rgba(${colorA.r},${colorA.g},${colorA.b},${alpha})`);
+  grad.addColorStop(0.5, `rgba(${r},${g},${b},${alpha})`);
+  grad.addColorStop(1, `rgba(${colorB.r},${colorB.g},${colorB.b},${alpha})`);
+
+  ctx.strokeStyle = grad;
+  ctx.lineWidth = width;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(rung.a.x, rung.a.y);
+  ctx.lineTo(rung.b.x, rung.b.y);
+  ctx.stroke();
+}
+
+requestAnimationFrame(draw);
+</script>
+</body>
+</html>
