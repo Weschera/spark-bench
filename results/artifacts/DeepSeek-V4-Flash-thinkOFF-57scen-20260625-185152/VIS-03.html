@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DNA Double Helix</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #0a0e17;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            width: 100vw;
+        }
+        canvas {
+            display: block;
+            background: #0a0e17;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="dnaCanvas"></canvas>
+    <script>
+        (function() {
+            const canvas = document.getElementById('dnaCanvas');
+            const ctx = canvas.getContext('2d');
+
+            // ─── Sizing ───────────────────────────────────────────────
+            function resize() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+            window.addEventListener('resize', resize);
+            resize();
+
+            // ─── Parameters ──────────────────────────────────────────
+            const NUM_NODES = 64;
+            const TURNS = 4.2;
+            const RADIUS = 130;
+            const HELIX_HEIGHT = 440;
+            const FOCAL_LENGTH = 620;
+            const ROTATION_SPEED = 0.0055;
+            const STRAND_1_COLOR = '#64ffda';
+            const STRAND_2_COLOR = '#ff80ab';
+            const RUNG_ALPHA_BASE = 0.10;
+            const RUNG_ALPHA_RANGE = 0.18;
+            const NODE_BASE_RADIUS = 4.5;
+            const NODE_DEPTH_FACTOR = 0.6;
+
+            let rotationAngle = 0;
+
+            // ─── Generate 3D helix points ────────────────────────────
+            const points1 = [];
+            const points2 = [];
+            for (let i = 0; i < NUM_NODES; i++) {
+                const frac = i / (NUM_NODES - 1);
+                const theta = frac * TURNS * 2 * Math.PI;
+                const y = (frac - 0.5) * HELIX_HEIGHT;
+                points1.push({
+                    x: RADIUS * Math.cos(theta),
+                    y: y,
+                    z: RADIUS * Math.sin(theta)
+                });
+                points2.push({
+                    x: RADIUS * Math.cos(theta + Math.PI),
+                    y: y,
+                    z: RADIUS * Math.sin(theta + Math.PI)
+                });
+            }
+
+            // ─── Depth normalisation helper ──────────────────────────
+            const depthRange = RADIUS * 2.2;
+
+            function depthAlpha(z) {
+                return Math.max(0.15, Math.min(1.0, (z + depthRange) / (depthRange * 2)));
+            }
+
+            function nodeRadius(z, scale) {
+                const d = depthAlpha(z);
+                return NODE_BASE_RADIUS * (0.4 + 0.6 * d) * (0.7 + 0.3 * scale);
+            }
+
+            // ─── Draw a glowing line (strand) ────────────────────────
+            function drawGlowLine(projected, color, lineWidth, glowWidth, glowAlpha) {
+                // Glow pass
+                ctx.save();
+                ctx.globalAlpha = glowAlpha;
+                ctx.strokeStyle = color;
+                ctx.lineWidth = glowWidth;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.beginPath();
+                ctx.moveTo(projected[0].x, projected[0].y);
+                for (let i = 1; i < projected.length; i++) {
+                    ctx.lineTo(projected[i].x, projected[i].y);
+                }
+                ctx.stroke();
+                ctx.restore();
+
+                // Main line pass
+                ctx.save();
+                ctx.strokeStyle = color;
+                ctx.lineWidth = lineWidth;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.beginPath();
+                ctx.moveTo(projected[0].x, projected[0].y);
+                for (let i = 1; i < projected.length; i++) {
+                    ctx.lineTo(projected[i].x, projected[i].y);
+                }
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            // ─── Draw strand with per-segment depth opacity ──────────
+            function drawStrandSegmented(projected, color, lineWidth, glowWidth, glowAlpha) {
+                const segments = [];
+                for (let i = 0; i < projected.length - 1; i++) {
+                    const avgZ = (projected[i].z + projected[i + 1].z) / 2;
+                    segments.push({
+                        i: i,
+                        z: avgZ,
+                        x1: projected[i].x,
+                        y1: projected[i].y,
+                        x2: projected[i + 1].x,
+                        y2: projected[i + 1].y
+                    });
+                }
+                // Sort back to front
+                segments.sort((a, b) => a.z - b.z);
+
+                // Glow pass (simplified: draw all segments with depth alpha)
+                ctx.save();
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                for (const seg of segments) {
+                    const alpha = depthAlpha(seg.z);
+                    ctx.globalAlpha = alpha * glowAlpha;
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = glowWidth;
+                    ctx.beginPath();
+                    ctx.moveTo(seg.x1, seg.y1);
+                    ctx.lineTo(seg.x2, seg.y2);
+                    ctx.stroke();
+                }
+                ctx.restore();
+
+                // Main line pass
+                ctx.save();
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                for (const seg of segments) {
+                    const alpha = depthAlpha(seg.z);
+                    ctx.globalAlpha = alpha;
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = lineWidth;
+                    ctx.beginPath();
+                    ctx.moveTo(seg.x1, seg.y1);
+                    ctx.lineTo(seg.x2, seg.y2);
+                    ctx.stroke();
+                }
+                ctx.restore();
+            }
+
+            // ─── Animation loop ──────────────────────────────────────
+            function animate() {
+                // Clear with dark background
+                ctx.fillStyle = '#0a0e17';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                const cx = canvas.width / 2;
+                const cy = canvas.height / 2;
+
+                const cosA = Math.cos(rotationAngle);
+                const sinA = Math.sin(rotationAngle);
+
+                // ─── Rotate and project all points ────────────────
+                const proj1 = [];
+                const proj2 = [];
+
+                for (let i = 0; i < NUM_NODES; i++) {
+                    // Strand 1
+                    const rx1 = points1[i].x * cosA + points1[i].z * sinA;
+                    const ry1 = points1[i].y;
+                    const rz1 = -points1[i].x * sinA + points1[i].z * cosA;
+                    const sc1 = FOCAL_LENGTH / (FOCAL_LENGTH + rz1);
+                    proj1.push({
+                        x: rx1 * sc1 + cx,
+                        y: ry1 * sc1 + cy,
+                        z: rz1,
+                        scale: sc1
+                    });
+
+                    // Strand 2
+                    const rx2 = points2[i].x * cosA + points2[i].z * sinA;
+                    const ry2 = points2[i].y;
+                    const rz2 = -points2[i].x * sinA + points2[i].z * cosA;
+                    const sc2 = FOCAL_LENGTH / (FOCAL_LENGTH + rz2);
+                    proj2.push({
+                        x: rx2 * sc2 + cx,
+                        y: ry2 * sc2 + cy,
+                        z: rz2,
+                        scale: sc2
+                    });
+                }
+
+                // ─── Build rungs and sort by depth ────────────────
+                const rungs = [];
+                for (let i = 0; i < NUM_NODES; i++) {
+                    const avgZ = (proj1[i].z + proj2[i].z) / 2;
+                    rungs.push({
+                        idx: i,
+                        z: avgZ,
+                        x1: proj1[i].x,
+                        y1: proj1[i].y,
+                        x2: proj2[i].x,
+                        y2: proj2[i].y,
+                        z1: proj1[i].z,
+                        z2: proj2[i].z
+                    });
+                }
+                rungs.sort((a, b) => a.z - b.z);
+
+                // ─── Draw rungs (back to front) ───────────────────
+                for (const rung of rungs) {
+                    const alpha1 = depthAlpha(rung.z1);
+                    const alpha2 = depthAlpha(rung.z2);
+                    const avgAlpha = (alpha1 + alpha2) / 2;
+                    const rungAlpha = RUNG_ALPHA_BASE + RUNG_ALPHA_RANGE * avgAlpha;
+
+                    // Gradient rung from strand1 color to strand2 color
+                    const grad = ctx.createLinearGradient(rung.x1, rung.y1, rung.x2, rung.y2);
+                    grad.addColorStop(0, STRAND_1_COLOR);
+                    grad.addColorStop(1, STRAND_2_COLOR);
+
+                    ctx.save();
+                    ctx.globalAlpha = rungAlpha;
+                    ctx.strokeStyle = grad;
+                    ctx.lineWidth = 1.6;
+                    ctx.beginPath();
+                    ctx.moveTo(rung.x1, rung.y1);
+                    ctx.lineTo(rung.x2, rung.y2);
+                    ctx.stroke();
+                    ctx.restore();
+
+                    // Subtle glow dot at each rung endpoint
+                    const glowR1 = 2.0 * (0.5 + 0.5 * depthAlpha(rung.z1));
+                    const glowR2 = 2.0 * (0.5 + 0.5 * depthAlpha(rung.z2));
+                    ctx.save();
+                    ctx.globalAlpha = rungAlpha * 0.6;
+                    ctx.fillStyle = STRAND_1_COLOR;
+                    ctx.beginPath();
+                    ctx.arc(rung.x1, rung.y1, glowR1, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = STRAND_2_COLOR;
+                    ctx.beginPath();
+                    ctx.arc(rung.x2, rung.y2, glowR2, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+
+                // ─── Draw strands with depth opacity ──────────────
+                drawStrandSegmented(proj1, STRAND_1_COLOR, 2.8, 10, 0.20);
+                drawStrandSegmented(proj2, STRAND_2_COLOR, 2.8, 10, 0.20);
+
+                // ─── Draw nodes ───────────────────────────────────
+                // Combine both strands' nodes and sort by depth
+                const allNodes = [];
+                for (let i = 0; i < NUM_NODES; i++) {
+                    allNodes.push({
+                        x: proj1[i].x,
+                        y: proj1[i].y,
+                        z: proj1[i].z,
+                        scale: proj1[i].scale,
+                        color: STRAND_1_COLOR,
+                        idx: i
+                    });
+                    allNodes.push({
+                        x: proj2[i].x,
+                        y: proj2[i].y,
+                        z: proj2[i].z,
+                        scale: proj2[i].scale,
+                        color: STRAND_2_COLOR,
+                        idx: i
+                    });
+                }
+                allNodes.sort((a, b) => a.z - b.z);
+
+                for (const node of allNodes) {
+                    const dAlpha = depthAlpha(node.z);
+                    const r = nodeRadius(node.z, node.scale);
+                    const glowR = r * 3.0;
+
+                    // Outer glow
+                    ctx.save();
+                    ctx.globalAlpha = dAlpha * 0.18;
+                    ctx.fillStyle = node.color;
+                    ctx.beginPath();
+                    ctx.arc(node.x, node.y, glowR, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+
+                    // Main node
+                    ctx.save();
+                    ctx.globalAlpha = Math.max(0.4, dAlpha);
+                    ctx.fillStyle = node.color;
+                    ctx.shadowColor = node.color;
+                    ctx.shadowBlur = 8;
+                    ctx.beginPath();
+                    ctx.arc(node.x, node.y, r, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+
+                    // Bright core
+                    ctx.save();
+                    ctx.globalAlpha = Math.max(0.3, dAlpha * 0.8);
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.arc(node.x, node.y, r * 0.4, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+
+                // ─── Subtle central axis glow ─────────────────────
+                ctx.save();
+                const axisGrad = ctx.createLinearGradient(cx, cy - HELIX_HEIGHT / 2, cx, cy + HELIX_HEIGHT / 2);
+                axisGrad.addColorStop(0, 'rgba(100, 255, 218, 0)');
+                axisGrad.addColorStop(0.3, 'rgba(100, 255, 218, 0.04)');
+                axisGrad.addColorStop(0.5, 'rgba(100, 255, 218, 0.06)');
+                axisGrad.addColorStop(0.7, 'rgba(255, 128, 171, 0.04)');
+                axisGrad.addColorStop(1, 'rgba(255, 128, 171, 0)');
+                ctx.fillStyle = axisGrad;
+                ctx.fillRect(cx - 40, cy - HELIX_HEIGHT / 2 - 20, 80, HELIX_HEIGHT + 40);
+                ctx.restore();
+
+                // ─── Advance rotation ─────────────────────────────
+                rotationAngle += ROTATION_SPEED;
+                requestAnimationFrame(animate);
+            }
+
+            animate();
+        })();
+    </script>
+</body>
+</html>

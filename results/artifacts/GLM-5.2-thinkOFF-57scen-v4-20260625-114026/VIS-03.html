@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>DNA Double Helix</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: #05060d;
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  canvas {
+    display: block;
+    width: 100vw;
+    height: 100vh;
+  }
+  .hud {
+    position: fixed;
+    top: 18px;
+    left: 22px;
+    color: rgba(220, 230, 255, 0.55);
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    user-select: none;
+    pointer-events: none;
+  }
+  .hud b {
+    color: rgba(180, 220, 255, 0.9);
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="hud"><b>DNA</b> &nbsp;·&nbsp; double helix simulation</div>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+let W, H, cx, cy;
+function resize() {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  cx = W / 2;
+  cy = H / 2;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// Helix parameters
+const NODES = 64;            // number of nodes per strand
+const HELIX_HEIGHT = () => Math.min(H * 0.82, 720);
+const RADIUS = () => Math.min(W * 0.13, 150);
+const TWIST = 0.22;          // radians of twist per node step
+const RUNG_EVERY = 1;        // connect rung at every node
+
+// Base color palettes for the two strands
+function strandColorA(t) {
+  // cyan -> teal
+  const r = 60 + 40 * Math.sin(t * 1.3);
+  const g = 200 + 30 * Math.cos(t * 0.9);
+  const b = 230 + 20 * Math.sin(t * 0.7);
+  return `rgb(${r|0}, ${g|0}, ${b|0})`;
+}
+function strandColorB(t) {
+  // magenta -> warm pink
+  const r = 240 + 15 * Math.sin(t * 1.1);
+  const g = 110 + 30 * Math.cos(t * 1.4);
+  const b = 180 + 25 * Math.sin(t * 0.8);
+  return `rgb(${r|0}, ${g|0}, ${b|0})`;
+}
+
+// Rung color depends on "base pair" — cycle through 4 bases
+const BASES = [
+  ['#ff5e7e', '#7effc8'],
+  ['#ffd166', '#7ab8ff'],
+  ['#a0f0a0', '#ff9ec7'],
+  ['#b58bff', '#fff066'],
+];
+
+let rotation = 0;
+let lastTime = performance.now();
+
+function draw(now) {
+  const dt = Math.min(0.05, (now - lastTime) / 1000);
+  lastTime = now;
+  rotation += dt * 0.8;
+
+  // Background with subtle vertical gradient
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#070914');
+  bg.addColorStop(0.5, '#04050c');
+  bg.addColorStop(1, '#080a18');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Faint central glow
+  const glow = ctx.createRadialGradient(cx, cy, 10, cx, cy, Math.max(W, H) * 0.5);
+  glow.addColorStop(0, 'rgba(80, 140, 220, 0.10)');
+  glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, W, H);
+
+  const helixH = HELIX_HEIGHT();
+  const r = RADIUS();
+  const topY = cy - helixH / 2;
+  const stepY = helixH / (NODES - 1);
+
+  // Compute all node positions for both strands
+  const a = [];
+  const b = [];
+  for (let i = 0; i < NODES; i++) {
+    const y = topY + i * stepY;
+    const phase = i * TWIST + rotation;
+    const xA = cx + Math.cos(phase) * r;
+    const zA = Math.sin(phase);            // depth: -1 (back) to 1 (front)
+    const xB = cx + Math.cos(phase + Math.PI) * r;
+    const zB = Math.sin(phase + Math.PI);
+    a.push({ x: xA, y, z: zA, i });
+    b.push({ x: xB, y, z: zB, i });
+  }
+
+  // Helper: depth-based alpha & scale
+  function depthProps(z) {
+    const t = (z + 1) / 2; // 0 back, 1 front
+    return {
+      alpha: 0.25 + 0.75 * t,
+      scale: 0.55 + 0.55 * t,
+      blur: (1 - t) * 1.5,
+    };
+  }
+
+  // Build a single draw list ordered by depth (back to front) for correct overlap
+  const drawables = [];
+
+  // Strand segments (lines between consecutive nodes)
+  for (let i = 0; i < NODES - 1; i++) {
+    drawables.push({ type: 'seg', strand: 'A', p1: a[i], p2: a[i + 1], depth: (a[i].z + a[i + 1].z) / 2 });
+    drawables.push({ type: 'seg', strand: 'B', p1: b[i], p2: b[i + 1], depth: (b[i].z + b[i + 1].z) / 2 });
+  }
+
+  // Rungs
+  for (let i = 0; i < NODES; i += RUNG_EVERY) {
+    const depth = (a[i].z + b[i].z) / 2;
+    drawables.push({ type: 'rung', pa: a[i], pb: b[i], depth, i });
+  }
+
+  // Nodes
+  for (let i = 0; i < NODES; i++) {
+    drawables.push({ type: 'node', strand: 'A', p: a[i], depth: a[i].z, i });
+    drawables.push({ type: 'node', strand: 'B', p: b[i], depth: b[i].z, i });
+  }
+
+  drawables.sort((u, v) => u.depth - v.depth);
+
+  for (const d of drawables) {
+    if (d.type === 'seg') {
+      const dp = depthProps(d.depth);
+      const t = d.p1.i / (NODES - 1);
+      const col = d.strand === 'A' ? strandColorA(t) : strandColorB(t);
+      ctx.globalAlpha = dp.alpha * 0.9;
+      ctx.strokeStyle = col;
+      ctx.lineWidth = d.strand === 'A' ? 2.4 : 2.4;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(d.p1.x, d.p1.y);
+      ctx.lineTo(d.p2.x, d.p2.y);
+      ctx.stroke();
+    } else if (d.type === 'rung') {
+      const dp = depthProps(d.depth);
+      const baseIdx = d.i % BASES.length;
+      const [c1, c2] = BASES[baseIdx];
+      const grad = ctx.createLinearGradient(d.pa.x, d.pa.y, d.pb.x, d.pb.y);
+      grad.addColorStop(0, c1);
+      grad.addColorStop(1, c2);
+      ctx.globalAlpha = dp.alpha * 0.55;
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = 1.6;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(d.pa.x, d.pa.y);
+      ctx.lineTo(d.pb.x, d.pb.y);
+      ctx.stroke();
+    } else if (d.type === 'node') {
+      const dp = depthProps(d.depth);
+      const t = d.p.i / (NODES - 1);
+      const col = d.strand === 'A' ? strandColorA(t) : strandColorB(t);
+      const rad = 3.2 * dp.scale;
+
+      // glow
+      ctx.globalAlpha = dp.alpha * 0.35;
+      const g = ctx.createRadialGradient(d.p.x, d.p.y, 0, d.p.x, d.p.y, rad * 4);
+      g.addColorStop(0, col);
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(d.p.x, d.p.y, rad * 4, 0, Math.PI * 2);
+      ctx.fill();
+
+      // core
+      ctx.globalAlpha = dp.alpha;
+      ctx.fillStyle = col;
+      ctx.beginPath();
+      ctx.arc(d.p.x, d.p.y, rad, 0, Math.PI * 2);
+      ctx.fill();
+
+      // highlight
+      ctx.globalAlpha = dp.alpha * 0.7;
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      ctx.beginPath();
+      ctx.arc(d.p.x - rad * 0.3, d.p.y - rad * 0.3, rad * 0.35, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  ctx.globalAlpha = 1;
+  requestAnimationFrame(draw);
+}
+requestAnimationFrame((t) => { lastTime = t; draw(t); });
+</script>
+</body>
+</html>

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Spiral Galaxy</title>
+<style>
+* { margin: 0; padding: 0; }
+body { background: #000; overflow: hidden; }
+canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let w, h, cx, cy;
+
+function resize() {
+    w = canvas.width = window.innerWidth;
+    h = canvas.height = window.innerHeight;
+    cx = w / 2;
+    cy = h / 2;
+}
+resize();
+window.addEventListener('resize', resize);
+
+const NUM_ARMS = 2;
+const STARS_PER_ARM = 350;
+const BACKGROUND_STARS = 200;
+const CORE_STARS = 120;
+const ARMS = [];
+const BG = [];
+const CORE = [];
+
+function rand(min, max) { return Math.random() * (max - min) + min; }
+
+function makeColor() {
+    const r = Math.random();
+    if (r < 0.5) return [200 + rand(0,55), 210 + rand(0,45), 255];       // white-blue
+    if (r < 0.7) return [150 + rand(0,50), 180 + rand(0,60), 255];      // blue
+    if (r < 0.85) return [255, 240 + rand(0,15), 200 + rand(0,55)];     // yellow-white
+    if (r < 0.95) return [255, 220 + rand(0,35), 170 + rand(0,50)];     // warm yellow
+    return [255, 180 + rand(0,40), 140 + rand(0,40)];                  // orange-red
+}
+
+function makeCoreColor() {
+    const r = Math.random();
+    if (r < 0.7) return [255, 245 + rand(0,10), 220 + rand(0,35)];
+    return [255, 220 + rand(0,35), 180 + rand(0,40)];
+}
+
+for (let i = 0; i < NUM_ARMS; i++) {
+    const arm = [];
+    for (let j = 0; j < STARS_PER_ARM; j++) {
+        const baseTheta = rand(0, Math.PI * 2);
+        const armOffset = (i / NUM_ARMS) * Math.PI * 2;
+        const scatter = rand(-0.35, 0.35);
+        arm.push({
+            theta: baseTheta,
+            armOffset,
+            scatter,
+            radius: rand(18, 260),
+            size: rand(0.6, 2.2),
+            color: makeColor(),
+            twinklePhase: rand(0, Math.PI * 2),
+            twinkleSpeed: rand(0.8, 2.5),
+            brightness: rand(0.5, 1)
+        });
+    }
+    ARMS.push(arm);
+}
+
+for (let i = 0; i < BACKGROUND_STARS; i++) {
+    BG.push({
+        x: rand(0, w),
+        y: rand(0, h),
+        size: rand(0.3, 1.2),
+        brightness: rand(0.2, 0.7),
+        twinklePhase: rand(0, Math.PI * 2),
+        twinkleSpeed: rand(0.5, 1.5)
+    });
+}
+
+for (let i = 0; i < CORE_STARS; i++) {
+    const angle = rand(0, Math.PI * 2);
+    const r = rand(0, 25);
+    CORE.push({
+        angle,
+        radius: r,
+        size: rand(0.8, 2.8),
+        color: makeCoreColor(),
+        twinklePhase: rand(0, Math.PI * 2),
+        twinkleSpeed: rand(1, 3),
+        brightness: rand(0.6, 1)
+    });
+}
+
+let time = 0;
+
+function drawStar(x, y, size, color, alpha) {
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = `rgb(${color[0]},${color[1]},${color[2]})`;
+    ctx.beginPath();
+    ctx.arc(x, y, size, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (size > 1.2 && alpha > 0.5) {
+        ctx.globalAlpha = alpha * 0.25;
+        ctx.beginPath();
+        ctx.arc(x, y, size * 2.5, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
+function drawCoreGlow() {
+    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 55);
+    grad.addColorStop(0, 'rgba(255,250,230,0.9)');
+    grad.addColorStop(0.2, 'rgba(255,240,200,0.4)');
+    grad.addColorStop(0.5, 'rgba(255,220,170,0.1)');
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 55, 0, Math.PI * 2);
+    ctx.fill();
+
+    const grad2 = ctx.createRadialGradient(cx, cy, 0, cx, cy, 120);
+    grad2.addColorStop(0, 'rgba(255,245,220,0.15)');
+    grad2.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = grad2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 120, 0, Math.PI * 2);
+    ctx.fill();
+}
+
+function animate() {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, w, h);
+
+    time += 0.008;
+
+    ctx.globalCompositeOperation = 'lighter';
+
+    for (const s of BG) {
+        const twinkle = 0.5 + 0.5 * Math.sin(time * s.twinkleSpeed + s.twinklePhase);
+        drawStar(s.x, s.y, s.size, [255, 255, 255], s.brightness * twinkle);
+    }
+
+    drawCoreGlow();
+
+    for (const s of CORE) {
+        const twinkle = 0.7 + 0.3 * Math.sin(time * s.twinkleSpeed + s.twinklePhase);
+        const x = cx + Math.cos(s.angle + time * 0.04) * s.radius;
+        const y = cy + Math.sin(s.angle + time * 0.04) * s.radius;
+        drawStar(x, y, s.size, s.color, s.brightness * twinkle);
+    }
+
+    for (const arm of ARMS) {
+        for (const s of arm) {
+            const theta = s.theta + s.armOffset + time;
+            const r = s.radius;
+            const scatterR = s.scatter * r * 0.15;
+            const x = cx + (r + scatterR) * Math.cos(theta);
+            const y = cy + (r + scatterR) * Math.sin(theta);
+            const dist = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);
+            const dimming = Math.max(0.25, 1 - dist / 320);
+            const twinkle = 0.6 + 0.4 * Math.sin(time * s.twinkleSpeed + s.twinklePhase);
+            drawStar(x, y, s.size, s.color, s.brightness * dimming * twinkle);
+        }
+    }
+
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 1;
+
+    requestAnimationFrame(animate);
+}
+
+animate();
+</script>
+</body>
+</html>

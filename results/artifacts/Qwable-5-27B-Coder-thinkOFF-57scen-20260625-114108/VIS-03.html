@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DNA Double Helix</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0a0a12; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
+canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="dna"></canvas>
+<script>
+const canvas = document.getElementById('dna');
+const ctx = canvas.getContext('2d');
+
+let W, H;
+function resize() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+const NUM_POINTS = 80;
+const HELIX_RADIUS = 120;
+const VERTICAL_SPACING = 12;
+const ROTATION_SPEED = 0.012;
+const PERSPECTIVE_DEPTH = 600;
+const FOV = 500;
+
+let phase = 0;
+
+function project(x, y, z) {
+    const scale = FOV / (FOV + z);
+    return {
+        sx: W / 2 + x * scale,
+        sy: y * scale,
+        scale: scale
+    };
+}
+
+function getHelixPoints(p) {
+    const points = [];
+    const totalHeight = NUM_POINTS * VERTICAL_SPACING;
+    const startY = H / 2 - totalHeight / 2 + 40;
+
+    for (let i = 0; i < NUM_POINTS; i++) {
+        const t = i * 0.22 + p;
+        const y = startY + i * VERTICAL_SPACING;
+
+        // Strand 1
+        const x1 = HELIX_RADIUS * Math.cos(t);
+        const z1 = HELIX_RADIUS * Math.sin(t);
+
+        // Strand 2 (offset by pi)
+        const x2 = HELIX_RADIUS * Math.cos(t + Math.PI);
+        const z2 = HELIX_RADIUS * Math.sin(t + Math.PI);
+
+        points.push({
+            i,
+            strand1: { x: x1, y: y, z: z1 },
+            strand2: { x: x2, y: y, z: z2 }
+        });
+    }
+    return points;
+}
+
+function drawGlowingLine(points, color1, color2, width) {
+    for (let i = 0; i < points.length - 1; i++) {
+        const p1 = points[i];
+        const p2 = points[i + 1];
+        const t = i / points.length;
+
+        const r = Math.round(color1[0] * t + color2[0] * (1 - t));
+        const g = Math.round(color1[1] * t + color2[1] * (1 - t));
+        const b = Math.round(color1[2] * t + color2[2] * (1 - t));
+
+        ctx.beginPath();
+        ctx.moveTo(p1.sx, p1.sy);
+        ctx.lineTo(p2.sx, p2.sy);
+        ctx.strokeStyle = `rgba(${r},${g},${b},${0.6 * p1.scale})`;
+        ctx.lineWidth = width * p1.scale;
+        ctx.stroke();
+    }
+}
+
+function drawGlowingNode(x, y, radius, color, alpha) {
+    const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius * 3);
+    gradient.addColorStop(0, `rgba(${color[0]},${color[1]},${color[2]},${alpha})`);
+    gradient.addColorStop(0.4, `rgba(${color[0]},${color[1]},${color[2]},${alpha * 0.4})`);
+    gradient.addColorStop(1, `rgba(${color[0]},${color[1]},${color[2]},0)`);
+
+    ctx.beginPath();
+    ctx.arc(x, y, radius * 3, 0, Math.PI * 2);
+    ctx.fillStyle = gradient;
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(${Math.min(255, color[0] + 80)},${Math.min(255, color[1] + 80)},${Math.min(255, color[2] + 80)},${alpha})`;
+    ctx.fill();
+}
+
+function animate() {
+    ctx.fillStyle = 'rgba(10, 10, 18, 0.95)';
+    ctx.fillRect(0, 0, W, H);
+
+    // Subtle background gradient
+    const bgGrad = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Math.max(W, H) * 0.6);
+    bgGrad.addColorStop(0, 'rgba(20, 20, 50, 0.3)');
+    bgGrad.addColorStop(1, 'rgba(10, 10, 18, 0)');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, W, H);
+
+    phase += ROTATION_SPEED;
+
+    const helixData = getHelixPoints(phase);
+
+    // Collect all drawable elements with depth
+    const elements = [];
+
+    for (let i = 0; i < helixData.length; i++) {
+        const d = helixData[i];
+
+        const p1 = project(d.strand1.x, d.strand1.y, d.strand1.z);
+        const p2 = project(d.strand2.x, d.strand2.y, d.strand2.z);
+
+        // Rung elements
+        elements.push({
+            type: 'rung',
+            z: (d.strand1.z + d.strand2.z) / 2,
+            p1: p1,
+            p2: p2,
+            index: i
+        });
+
+        // Strand 1 node
+        elements.push({
+            type: 'node1',
+            z: d.strand1.z,
+            sx: p1.sx,
+            sy: p1.sy,
+            scale: p1.scale,
+            index: i
+        });
+
+        // Strand 2 node
+        elements.push({
+            type: 'node2',
+            z: d.strand2.z,
+            sx: p2.sx,
+            sy: p2.sy,
+            scale: p2.scale,
+            index: i
+        });
+    }
+
+    // Strand line segments
+    for (let i = 0; i < helixData.length - 1; i++) {
+        const d = helixData[i];
+        const dNext = helixData[i + 1];
+
+        const p1 = project(d.strand1.x, d.strand1.y, d.strand1.z);
+        const p1n = project(dNext.strand1.x, dNext.strand1.y, dNext.strand1.z);
+
+        elements.push({
+            type: 'line1',
+            z: (d.strand1.z + dNext.strand1.z) / 2,
+            from: p1,
+            to: p1n,
+            index: i
+        });
+
+        const p2 = project(d.strand2.x, d.strand2.y, d.strand2.z);
+        const p2n = project(dNext.strand2.x, dNext.strand2.y, dNext.strand2.z);
+
+        elements.push({
+            type: 'line2',
+            z: (d.strand2.z + dNext.strand2.z) / 2,
+            from: p2,
+            to: p2n,
+            index: i
+        });
+    }
+
+    // Sort by depth (back to front)
+    elements.sort((a, b) => a.z - b.z);
+
+    // Strand colors
+    const strand1Color = [60, 140, 255];   // Blue
+    const strand2Color = [255, 80, 140];   // Pink/Red
+    const rungColor = [100, 200, 180];     // Teal
+
+    // Draw all elements
+    for (const el of elements) {
+        const alpha = Math.max(0.15, Math.min(1, (el.scale || 1) * 1.2));
+
+        if (el.type === 'line1') {
+            ctx.beginPath();
+            ctx.moveTo(el.from.sx, el.from.sy);
+            ctx.lineTo(el.to.sx, el.to.sy);
+            ctx.strokeStyle = `rgba(${strand1Color[0]},${strand1Color[1]},${strand1Color[2]},${alpha * 0.5})`;
+            ctx.lineWidth = 3 * (el.from.scale || 1);
+            ctx.lineCap = 'round';
+            ctx.stroke();
+        } else if (el.type === 'line2') {
+            ctx.beginPath();
+            ctx.moveTo(el.from.sx, el.from.sy);
+            ctx.lineTo(el.to.sx, el.to.sy);
+            ctx.strokeStyle = `rgba(${strand2Color[0]},${strand2Color[1]},${strand2Color[2]},${alpha * 0.5})`;
+            ctx.lineWidth = 3 * (el.from.scale || 1);
+            ctx.lineCap = 'round';
+            ctx.stroke();
+        } else if (el.type === 'rung') {
+            const rungAlpha = alpha * 0.45;
+            ctx.beginPath();
+            ctx.moveTo(el.p1.sx, el.p1.sy);
+            ctx.lineTo(el.p2.sx, el.p2.sy);
+            ctx.strokeStyle = `rgba(${rungColor[0]},${rungColor[1]},${rungColor[2]},${rungAlpha})`;
+            ctx.lineWidth = 2 * el.p1.scale;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+
+            // Subtle rung glow
+            ctx.beginPath();
+            ctx.moveTo(el.p1.sx, el.p1.sy);
+            ctx.lineTo(el.p2.sx, el.p2.sy);
+            ctx.strokeStyle = `rgba(${rungColor[0]},${rungColor[1]},${rungColor[2]},${rungAlpha * 0.3})`;
+            ctx.lineWidth = 6 * el.p1.scale;
+            ctx.stroke();
+        } else if (el.type === 'node1') {
+            const nodeSize = 5 * el.scale;
+            drawGlowingNode(el.sx, el.sy, nodeSize, strand1Color, alpha);
+        } else if (el.type === 'node2') {
+            const nodeSize = 5 * el.scale;
+            drawGlowingNode(el.sx, el.sy, nodeSize, strand2Color, alpha);
+        }
+    }
+
+    // Central axis subtle glow
+    const axisGrad = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, 200);
+    axisGrad.addColorStop(0, 'rgba(100, 100, 180, 0.03)');
+    axisGrad.addColorStop(1, 'rgba(100, 100, 180, 0)');
+    ctx.fillStyle = axisGrad;
+    ctx.fillRect(0, 0, W, H);
+
+    requestAnimationFrame(animate);
+}
+
+animate();
+</script>
+</body>
+</html>

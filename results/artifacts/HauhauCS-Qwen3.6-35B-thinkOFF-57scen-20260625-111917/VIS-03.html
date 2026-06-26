@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DNA Double Helix</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #000; overflow: hidden; }
+canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+let W, H;
+function resize() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+const NUM_NODES = 80;
+const HELIX_RADIUS = Math.min(W, H) * 0.18;
+const VERTICAL_SPACING = 8;
+const ROTATION_SPEED = 0.008;
+const FOCAL_LENGTH = 600;
+const PERSPECTIVE_SCALE = 400;
+
+let rotation = 0;
+
+function project(x, y, z) {
+    const scale = PERSPECTIVE_SCALE / (PERSPECTIVE_SCALE + z);
+    return {
+        sx: W / 2 + x * scale,
+        sy: H / 2 + y * scale,
+        scale: scale,
+        z: z
+    };
+}
+
+function getNodePosition(nodeIndex, strandOffset) {
+    const theta = rotation + nodeIndex * 0.25 + strandOffset;
+    const x = HELIX_RADIUS * Math.cos(theta);
+    const y = (nodeIndex - NUM_NODES / 2) * VERTICAL_SPACING;
+    const z = HELIX_RADIUS * Math.sin(theta);
+    return { x, y, z, theta };
+}
+
+function drawRung(p1, p2, nodeIndex) {
+    const proj1 = project(p1.x, p1.y, p1.z);
+    const proj2 = project(p2.x, p2.y, p2.z);
+
+    const avgZ = (p1.z + p2.z) / 2;
+    const depthFade = Math.max(0.15, Math.min(1, (avgZ + HELIX_RADIUS) / (2 * HELIX_RADIUS)));
+
+    const hue1 = 195 + (1 - depthFade) * 30;
+    const hue2 = 345 + (1 - depthFade) * 20;
+
+    ctx.beginPath();
+    ctx.moveTo(proj1.sx, proj1.sy);
+    ctx.lineTo(proj2.sx, proj2.sy);
+
+    const grad = ctx.createLinearGradient(proj1.sx, proj1.sy, proj2.sx, proj2.sy);
+    grad.addColorStop(0, `hsla(${hue1}, 80%, 60%, ${0.3 * depthFade})`);
+    grad.addColorStop(1, `hsla(${hue2}, 80%, 60%, ${0.3 * depthFade})`);
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = 1.5 * proj1.scale;
+    ctx.stroke();
+}
+
+function drawNode(proj, strandIndex, depthFade) {
+    const radius = 4 * proj.scale;
+
+    if (strandIndex === 0) {
+        const hue = 190 + (1 - depthFade) * 40;
+        const lightness = 45 + depthFade * 30;
+        ctx.beginPath();
+        ctx.arc(proj.sx, proj.sy, radius, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${hue}, 90%, ${lightness}%, ${0.6 + depthFade * 0.4})`;
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(proj.sx, proj.sy, radius * 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${hue}, 100%, 70%, ${0.08 * depthFade})`;
+        ctx.fill();
+    } else {
+        const hue = 340 + (1 - depthFade) * 40;
+        const lightness = 45 + depthFade * 30;
+        ctx.beginPath();
+        ctx.arc(proj.sx, proj.sy, radius, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${hue}, 90%, ${lightness}%, ${0.6 + depthFade * 0.4})`;
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(proj.sx, proj.sy, radius * 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${hue}, 100%, 70%, ${0.08 * depthFade})`;
+        ctx.fill();
+    }
+}
+
+function drawStrandLine(points, strandIndex) {
+    if (points.length < 2) return;
+
+    for (let i = 0; i < points.length - 1; i++) {
+        const p1 = points[i];
+        const p2 = points[i + 1];
+        const proj1 = project(p1.x, p1.y, p1.z);
+        const proj2 = project(p2.x, p2.y, p2.z);
+
+        const avgZ = (p1.z + p2.z) / 2;
+        const depthFade = Math.max(0.2, Math.min(1, (avgZ + HELIX_RADIUS) / (2 * HELIX_RADIUS)));
+
+        let hue, lightness;
+        if (strandIndex === 0) {
+            hue = 190 + (1 - depthFade) * 40;
+            lightness = 40 + depthFade * 35;
+        } else {
+            hue = 340 + (1 - depthFade) * 40;
+            lightness = 40 + depthFade * 35;
+        }
+
+        ctx.beginPath();
+        ctx.moveTo(proj1.sx, proj1.sy);
+        ctx.lineTo(proj2.sx, proj2.sy);
+        ctx.strokeStyle = `hsla(${hue}, 85%, ${lightness}%, ${0.4 + depthFade * 0.6})`;
+        ctx.lineWidth = 2.5 * proj1.scale;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+    }
+}
+
+function drawBackground() {
+    const grad = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Math.max(W, H) * 0.7);
+    grad.addColorStop(0, '#0a0a1a');
+    grad.addColorStop(1, '#000005');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+}
+
+function animate() {
+    drawBackground();
+
+    const strand1Nodes = [];
+    const strand2Nodes = [];
+
+    for (let i = 0; i < NUM_NODES; i++) {
+        strand1Nodes.push(getNodePosition(i, 0));
+        strand2Nodes.push(getNodePosition(i, Math.PI));
+    }
+
+    const allDrawables = [];
+
+    for (let i = 0; i < NUM_NODES; i++) {
+        const p1 = strand1Nodes[i];
+        const p2 = strand2Nodes[i];
+        const proj1 = project(p1.x, p1.y, p1.z);
+        const proj2 = project(p2.x, p2.y, p2.z);
+        const avgZ = (p1.z + p2.z) / 2;
+        const depthFade = Math.max(0.15, Math.min(1, (avgZ + HELIX_RADIUS) / (2 * HELIX_RADIUS)));
+
+        allDrawables.push({
+            type: 'rung',
+            z: avgZ,
+            depthFade: depthFade,
+            p1: p1, p2: p2,
+            proj1: proj1, proj2: proj2,
+            nodeIndex: i
+        });
+
+        allDrawables.push({
+            type: 'node',
+            z: p1.z,
+            depthFade: Math.max(0.15, Math.min(1, (p1.z + HELIX_RADIUS) / (2 * HELIX_RADIUS))),
+            proj: proj1,
+            strandIndex: 0,
+            nodeIndex: i
+        });
+
+        allDrawables.push({
+            type: 'node',
+            z: p2.z,
+            depthFade: Math.max(0.15, Math.min(1, (p2.z + HELIX_RADIUS) / (2 * HELIX_RADIUS))),
+            proj: proj2,
+            strandIndex: 1,
+            nodeIndex: i
+        });
+    }
+
+    allDrawables.sort((a, b) => b.z - a.z);
+
+    for (const item of allDrawables) {
+        if (item.type === 'rung') {
+            drawRung(item.p1, item.p2, item.nodeIndex);
+        } else {
+            drawNode(item.proj, item.strandIndex, item.depthFade);
+        }
+    }
+
+    drawStrandLine(strand1Nodes, 0);
+    drawStrandLine(strand2Nodes, 1);
+
+    rotation += ROTATION_SPEED;
+    requestAnimationFrame(animate);
+}
+
+animate();
+</script>
+</body>
+</html>

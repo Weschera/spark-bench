@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spiral Galaxy</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #000;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            width: 100vw;
+        }
+        canvas {
+            display: block;
+            background: #000;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="galaxy"></canvas>
+    <script>
+        (function() {
+            const canvas = document.getElementById('galaxy');
+            const ctx = canvas.getContext('2d');
+
+            let W, H, cx, cy;
+            let maxRadius, coreRadius;
+            let stars = [];
+            let bgStars = [];
+            let giantStars = [];
+            let dustPatches = [];
+            let time = 0;
+
+            // ─── Configuration ──────────────────────────────────────────────
+            const NUM_ARMS = 3;
+            const SPIRAL_TURNS = 3.8;
+            const NUM_STARS = 900;
+            const NUM_BG_STARS = 600;
+            const NUM_GIANTS = 30;
+            const NUM_DUST = 40;
+            const TILT = 0.65; // y-scale for 3D tilt
+
+            // ─── Resize ─────────────────────────────────────────────────────
+            function resize() {
+                W = canvas.width = window.innerWidth;
+                H = canvas.height = window.innerHeight;
+                cx = W / 2;
+                cy = H / 2;
+                maxRadius = Math.min(W, H) * 0.42;
+                coreRadius = maxRadius * 0.07;
+                generateGalaxy();
+            }
+
+            // ─── Color helpers ──────────────────────────────────────────────
+            function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+            function starColor(rNorm) {
+                let r, g, b;
+                // rNorm: 0 = center, 1 = edge
+                if (rNorm < 0.12) {
+                    // Core: warm brilliant white
+                    const t = rNorm / 0.12;
+                    r = 255;
+                    g = 250 - t * 10;
+                    b = 240 - t * 30;
+                } else if (rNorm < 0.30) {
+                    // Inner: yellow-white to white
+                    const t = (rNorm - 0.12) / 0.18;
+                    r = 255;
+                    g = 240 - t * 20;
+                    b = 210 - t * 30;
+                } else if (rNorm < 0.55) {
+                    // Mid: white to pale blue
+                    const t = (rNorm - 0.30) / 0.25;
+                    r = 255 - t * 40;
+                    g = 220 - t * 20;
+                    b = 180 + t * 60;
+                } else {
+                    // Outer: blue-white to deep blue
+                    const t = (rNorm - 0.55) / 0.45;
+                    r = 215 - t * 70;
+                    g = 200 - t * 60;
+                    b = 240 - t * 20;
+                }
+                // Add random warmth/coolness variation
+                const variation = (Math.random() - 0.5) * 25;
+                return {
+                    r: clamp(Math.round(r + variation), 0, 255),
+                    g: clamp(Math.round(g + variation * 0.7), 0, 255),
+                    b: clamp(Math.round(b + variation * 0.3), 0, 255)
+                };
+            }
+
+            // ─── Galaxy generation ──────────────────────────────────────────
+            function generateGalaxy() {
+                stars = [];
+                bgStars = [];
+                giantStars = [];
+                dustPatches = [];
+
+                const armAngleOffset = (2 * Math.PI) / NUM_ARMS;
+
+                // ── Spiral arm stars ──
+                for (let i = 0; i < NUM_STARS; i++) {
+                    const armIdx = Math.floor(Math.random() * NUM_ARMS);
+                    // t: 0..1 with bias toward center for density
+                    const t = Math.pow(Math.random(), 0.65);
+                    const armBase = armIdx * armAngleOffset;
+                    const spiral = t * SPIRAL_TURNS * 2 * Math.PI;
+
+                    // Scatter that increases with radius
+                    const angleScatter = (Math.random() - 0.5) * (0.25 + t * 0.20);
+                    const radialScatter = (Math.random() - 0.5) * maxRadius * (0.04 + t * 0.04);
+
+                    const angle = armBase + spiral + angleScatter;
+                    const radius = clamp(t * maxRadius + radialScatter, 0.5, maxRadius * 0.98);
+                    const rNorm = radius / maxRadius;
+
+                    const col = starColor(rNorm);
+                    const size = 0.4 + Math.random() * 1.6 * (1.0 - rNorm * 0.25);
+                    const twPhase = Math.random() * 2 * Math.PI;
+                    const twSpeed = 0.4 + Math.random() * 1.8;
+                    const twAmount = 0.25 + Math.random() * 0.40;
+
+                    stars.push({
+                        angle,
+                        radius,
+                        r: col.r,
+                        g: col.g,
+                        b: col.b,
+                        size,
+                        twPhase,
+                        twSpeed,
+                        twAmount
+                    });
+                }
+
+                // ── Background stars (distant, tiny, scattered everywhere) ──
+                for (let i = 0; i < NUM_BG_STARS; i++) {
+                    const angle = Math.random() * 2 * Math.PI;
+                    const radius = maxRadius * 0.3 + Math.random() * maxRadius * 0.8;
+                    const size = 0.15 + Math.random() * 0.45;
+                    const twPhase = Math.random() * 2 * Math.PI;
+                    const twSpeed = 0.2 + Math.random() * 1.2;
+                    bgStars.push({ angle, radius, size, twPhase, twSpeed });
+                }
+
+                // ── Giant stars (a few large, bright stars) ──
+                for (let i = 0; i < NUM_GIANTS; i++) {
+                    const armIdx = Math.floor(Math.random() * NUM_ARMS);
+                    const t = 0.15 + Math.random() * 0.75;
+                    const armBase = armIdx * armAngleOffset;
+                    const spiral = t * SPIRAL_TURNS * 2 * Math.PI;
+                    const angle = armBase + spiral + (Math.random() - 0.5) * 0.3;
+                    const radius = t * maxRadius + (Math.random() - 0.5) * maxRadius * 0.05;
+                    const rNorm = radius / maxRadius;
+                    const col = starColor(rNorm);
+                    const size = 1.8 + Math.random() * 2.5;
+                    const twPhase = Math.random() * 2 * Math.PI;
+                    const twSpeed = 0.15 + Math.random() * 0.6;
+                    const twAmount = 0.15 + Math.random() * 0.25;
+                    // Giants have a glow
+                    const glowSize = size * (3 + Math.random() * 3);
+                    giantStars.push({
+                        angle,
+                        radius,
+                        r: col.r,
+                        g: col.g,
+                        b: col.b,
+                        size,
+                        twPhase,
+                        twSpeed,
+                        twAmount,
+                        glowSize
+                    });
+                }
+
+                // ── Dust / nebula patches (soft colored blobs) ──
+                for (let i = 0; i < NUM_DUST; i++) {
+                    const armIdx = Math.floor(Math.random() * NUM_ARMS);
+                    const t = 0.1 + Math.random() * 0.8;
+                    const armBase = armIdx * armAngleOffset;
+                    const spiral = t * SPIRAL_TURNS * 2 * Math.PI;
+                    const angle = armBase + spiral + (Math.random() - 0.5) * 0.5;
+                    const radius = t * maxRadius + (Math.random() - 0.5) * maxRadius * 0.1;
+                    const rNorm = radius / maxRadius;
+                    const hue = 220 + Math.random() * 60 - rNorm * 40;
+                    const alpha = 0.015 + Math.random() * 0.035;
+                    const size = maxRadius * (0.06 + Math.random() * 0.15);
+                    dustPatches.push({ angle, radius, hue, alpha, size });
+                }
+            }
+
+            // ─── Draw ───────────────────────────────────────────────────────
+            function draw() {
+                time += 0.004;
+                const rot = time * 0.12;
+
+                ctx.clearRect(0, 0, W, H);
+                ctx.fillStyle = '#000';
+                ctx.fillRect(0, 0, W, H);
+
+                // ── Background stars (rotate slowly) ──
+                const bgRot = time * 0.015;
+                for (const s of bgStars) {
+                    const tw = 0.5 + 0.5 * Math.sin(time * s.twSpeed + s.twPhase);
+                    const x = cx + s.radius * Math.cos(s.angle + bgRot);
+                    const y = cy + s.radius * Math.sin(s.angle + bgRot) * TILT;
+                    const alpha = tw * 0.35;
+                    ctx.globalAlpha = alpha;
+                    ctx.fillStyle = '#c8d8ff';
+                    ctx.beginPath();
+                    ctx.arc(x, y, s.size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // ── Dust patches ──
+                for (const d of dustPatches) {
+                    const x = cx + d.radius * Math.cos(d.angle + rot);
+                    const y = cy + d.radius * Math.sin(d.angle + rot) * TILT;
+                    const grad = ctx.createRadialGradient(x, y, 0, x, y, d.size);
+                    grad.addColorStop(0, `hsla(${d.hue}, 60%, 60%, ${d.alpha})`);
+                    grad.addColorStop(0.5, `hsla(${d.hue + 20}, 50%, 50%, ${d.alpha * 0.4})`);
+                    grad.addColorStop(1, `hsla(${d.hue + 40}, 40%, 40%, 0)`);
+                    ctx.globalAlpha = 1;
+                    ctx.fillStyle = grad;
+                    ctx.beginPath();
+                    ctx.arc(x, y, d.size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // ── Galaxy stars ──
+                for (const s of stars) {
+                    const tw = 0.6 + s.twAmount * Math.sin(time * s.twSpeed + s.twPhase);
+                    const x = cx + s.radius * Math.cos(s.angle + rot);
+                    const y = cy + s.radius * Math.sin(s.angle + rot) * TILT;
+                    const alpha = clamp(tw, 0, 1);
+                    ctx.globalAlpha = alpha;
+                    const r = Math.round(clamp(s.r * (0.85 + 0.15 * tw), 0, 255));
+                    const g = Math.round(clamp(s.g * (0.85 + 0.15 * tw), 0, 255));
+                    const b = Math.round(clamp(s.b * (0.85 + 0.15 * tw), 0, 255));
+                    ctx.fillStyle = `rgb(${r},${g},${b})`;
+                    const sz = s.size * (0.7 + 0.3 * tw);
+                    ctx.beginPath();
+                    ctx.arc(x, y, sz, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // ── Giant stars (with glow) ──
+                for (const s of giantStars) {
+                    const tw = 0.7 + s.twAmount * Math.sin(time * s.twSpeed + s.twPhase);
+                    const x = cx + s.radius * Math.cos(s.angle + rot);
+                    const y = cy + s.radius * Math.sin(s.angle + rot) * TILT;
+                    const alpha = clamp(tw, 0, 1);
+
+                    // Glow
+                    ctx.globalAlpha = alpha * 0.25;
+                    const glowGrad = ctx.createRadialGradient(x, y, 0, x, y, s.glowSize);
+                    glowGrad.addColorStop(0, `rgba(${s.r},${s.g},${s.b},0.5)`);
+                    glowGrad.addColorStop(0.4, `rgba(${s.r},${s.g},${s.b},0.15)`);
+                    glowGrad.addColorStop(1, `rgba(${s.r},${s.g},${s.b},0)`);
+                    ctx.fillStyle = glowGrad;
+                    ctx.beginPath();
+                    ctx.arc(x, y, s.glowSize, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Star
+                    ctx.globalAlpha = alpha;
+                    const r = Math.round(clamp(s.r * (0.85 + 0.15 * tw), 0, 255));
+                    const g = Math.round(clamp(s.g * (0.85 + 0.15 * tw), 0, 255));
+                    const b = Math.round(clamp(s.b * (0.85 + 0.15 * tw), 0, 255));
+                    ctx.fillStyle = `rgb(${r},${g},${b})`;
+                    const sz = s.size * (0.75 + 0.25 * tw);
+                    ctx.beginPath();
+                    ctx.arc(x, y, sz, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Bright center
+                    ctx.globalAlpha = alpha * 0.6;
+                    ctx.fillStyle = `rgba(255,255,255,0.7)`;
+                    ctx.beginPath();
+                    ctx.arc(x, y, sz * 0.35, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // ── Core glow (outer halo) ──
+                ctx.globalAlpha = 1;
+                const haloRadius = coreRadius * 4.5;
+                const haloGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, haloRadius);
+                haloGrad.addColorStop(0, 'rgba(255, 245, 220, 0.35)');
+                haloGrad.addColorStop(0.15, 'rgba(255, 230, 190, 0.25)');
+                haloGrad.addColorStop(0.35, 'rgba(255, 200, 150, 0.12)');
+                haloGrad.addColorStop(0.6, 'rgba(200, 160, 120, 0.04)');
+                haloGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                ctx.fillStyle = haloGrad;
+                ctx.beginPath();
+                ctx.arc(cx, cy, haloRadius, 0, Math.PI * 2);
+                ctx.fill();
+
+                // ── Core glow (inner) ──
+                const innerGlowRadius = coreRadius * 2.2;
+                const innerGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, innerGlowRadius);
+                innerGrad.addColorStop(0, 'rgba(255, 255, 245, 0.9)');
+                innerGrad.addColorStop(0.2, 'rgba(255, 250, 225, 0.7)');
+                innerGrad.addColorStop(0.5, 'rgba(255, 230, 190, 0.35)');
+                innerGrad.addColorStop(0.8, 'rgba(255, 200, 150, 0.10)');
+                innerGrad.addColorStop(1, 'rgba(255, 180, 130, 0)');
+                ctx.fillStyle = innerGrad;
+                ctx.beginPath();
+                ctx.arc(cx, cy, innerGlowRadius, 0, Math.PI * 2);
+                ctx.fill();
+
+                // ── Core (bright center) ──
+                const corePulse = 1 + 0.02 * Math.sin(time * 0.5);
+                const coreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreRadius * corePulse);
+                coreGrad.addColorStop(0, 'rgba(255, 255, 255, 1)');
+                coreGrad.addColorStop(0.15, 'rgba(255, 252, 245, 0.95)');
+                coreGrad.addColorStop(0.4, 'rgba(255, 245, 225, 0.7)');
+                coreGrad.addColorStop(0.7, 'rgba(255, 230, 200, 0.3)');
+                coreGrad.addColorStop(1, 'rgba(255, 210, 180, 0)');
+                ctx.fillStyle = coreGrad;
+                ctx.beginPath();
+                ctx.arc(cx, cy, coreRadius * corePulse, 0, Math.PI * 2);
+                ctx.fill();
+
+                // ── Core spike / lens flare (subtle) ──
+                ctx.globalAlpha = 0.06;
+                for (let i = 0; i < 4; i++) {
+                    const a = i * Math.PI / 2 + time * 0.02;
+                    const len = coreRadius * 6;
+                    const grad = ctx.createLinearGradient(
+                        cx, cy,
+                        cx + len * Math.cos(a), cy + len * Math.sin(a)
+                    );
+                    grad.addColorStop(0, 'rgba(255,255,240,0.3)');
+                    grad.addColorStop(0.3, 'rgba(255,240,200,0.08)');
+                    grad.addColorStop(1, 'rgba(255,220,180,0)');
+                    ctx.fillStyle = grad;
+                    ctx.beginPath();
+                    ctx.moveTo(cx, cy);
+                    ctx.lineTo(
+                        cx + len * 1.2 * Math.cos(a - 0.08),
+                        cy + len * 1.2 * Math.sin(a - 0.08)
+                    );
+                    ctx.lineTo(
+                        cx + len * 1.2 * Math.cos(a + 0.08),
+                        cy + len * 1.2 * Math.sin(a + 0.08)
+                    );
+                    ctx.closePath();
+                    ctx.fill();
+                }
+                ctx.globalAlpha = 1;
+
+                requestAnimationFrame(draw);
+            }
+
+            // ─── Init ───────────────────────────────────────────────────────
+            window.addEventListener('resize', resize);
+            resize();
+            draw();
+
+        })();
+    </script>
+</body>
+</html>

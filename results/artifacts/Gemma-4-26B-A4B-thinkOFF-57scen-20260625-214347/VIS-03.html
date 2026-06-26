@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DNA Double Helix Animation</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #050505;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="dnaCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('dnaCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let width, height;
+        let angle = 0;
+
+        // Configuration
+        const numNodes = 40;        // Number of pairs
+        const radius = 120;         // Radius of the helix
+        const verticalSpacing = 15; // Distance between nodes vertically
+        const helixAmplitude = 1.5; // Speed/Scale of twist
+        const colorStrand1 = { h: 200, s: 80, l: 60 }; // Cyan-ish
+        const colorStrand2 = { h: 280, s: 80, l: 60 }; // Purple-ish
+
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+        }
+
+        window.addEventListener('resize', resize);
+        resize();
+
+        function draw() {
+            // Clear with a slight trail effect (optional, here we use pure clear)
+            ctx.fillStyle = '#050505';
+            ctx.fillRect(0, 0, width, height);
+
+            const centerX = width / 2;
+            const centerY = height / 2;
+
+            // Calculate total height to center the helix vertically
+            const totalHeight = numNodes * verticalSpacing;
+            const startY = centerY - totalHeight / 2;
+
+            for (let i = 0; i < numNodes; i++) {
+                // The phase of rotation for this specific node
+                // We add 'angle' to create the continuous motion
+                const currentAngle = (i * 0.3) + angle;
+
+                // Calculate 3D-like projection for Strand 1
+                const x1 = centerX + Math.cos(currentAngle) * radius;
+                const y1 = startY + i * verticalSpacing;
+                const z1 = Math.sin(currentAngle); // Used for scaling/depth
+
+                // Calculate 3D-like projection for Strand 2 (offset by PI)
+                const x2 = centerX + Math.cos(currentAngle + Math.PI) * radius;
+                const y2 = startY + i * verticalSpacing;
+                const z2 = Math.sin(currentAngle + Math.PI);
+
+                // 1. Draw the connecting rung (horizontal bar)
+                // We use the 'z' value to simulate depth by changing opacity
+                const opacity = (z1 + z2) / 2 * 0.5 + 0.5; 
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.strokeStyle = `rgba(255, 255, 255, ${opacity * 0.3})`;
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                // 2. Draw Strand 1 Node
+                const size1 = 4 + (z1 + 1) * 2; // Size scales with "depth"
+                ctx.beginPath();
+                ctx.arc(x1, y1, size1, 0, Math.PI * 2);
+                ctx.fillStyle = `hsla(${colorStrand1.h}, ${colorStrand1.s}%, ${colorStrand1.l}%, ${opacity + 0.2})`;
+                ctx.fill();
+
+                // 3. Draw Strand 2 Node
+                const size2 = 4 + (z2 + 1) * 2;
+                ctx.beginPath();
+                ctx.arc(x2, y2, size2, 0, Math.PI * 2);
+                ctx.fillStyle = `hsla(${colorStrand2.h}, ${colorStrand2.s}%, ${colorStrand2.l}%, ${opacity + 0.2})`;
+                ctx.fill();
+            }
+
+            // Increment rotation
+            angle += 0.02;
+
+            requestAnimationFrame(draw);
+        }
+
+        draw();
+    </script>
+</body>
+</html>

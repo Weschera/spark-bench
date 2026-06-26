@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canvas Solar System</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000000;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="solarSystemCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('solarSystemCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Set canvas dimensions to fill the window
+        let width = window.innerWidth;
+        let height = window.innerHeight;
+        canvas.width = width;
+        canvas.height = height;
+
+        // --- Constants and Setup ---
+        const centerX = width / 2;
+        const centerY = height / 2;
+
+        // Define the celestial bodies (simplified for visualization)
+        const solarSystem = [
+            // { radius, color, size, speed (radians/frame), orbitalPeriod (seconds) }
+            { name: 'Sun', radius: 0, color: '#FFD700', size: 40, speed: 0, mass: 100, isStar: true },
+            { name: 'Mercury', radius: 80, color: '#A9A9A9', size: 5, speed: 0.015, mass: 1, orbitalPeriod: 1 },
+            { name: 'Venus', radius: 150, color: '#FFA500', size: 8, speed: 0.01, mass: 2, orbitalPeriod: 2 },
+            { name: 'Earth', radius: 250, color: '#1E90FF', size: 10, speed: 0.008, mass: 1.2, orbitalPeriod: 4 },
+            { name: 'Mars', radius: 350, color: '#FF4500', size: 7, speed: 0.006, mass: 0.8, orbitalPeriod: 6 },
+            { name: 'Jupiter', radius: 450, color: '#FF8C00', size: 15, speed: 0.004, mass: 4, orbitalPeriod: 10 }
+        ];
+
+        let animationFrameId;
+
+        // --- Drawing Functions ---
+
+        function drawStarfield() {
+            // Simple dark background with occasional twinkling stars
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, width, height);
+
+            // Draw random twinkling stars
+            const starCount = 100;
+            for (let i = 0; i < starCount; i++) {
+                const x = Math.random() * width;
+                const y = Math.random() * height;
+                const size = Math.random() * 1.5 + 0.5;
+                const brightness = Math.random() * 0.8 + 0.2;
+                
+                ctx.fillStyle = `rgba(255, 255, 255, ${brightness})`;
+                ctx.fillRect(x, y, size, size);
+            }
+        }
+
+        function drawPlanet(planet) {
+            // Draw the orbit path (optional, for visual effect)
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, planet.radius, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // Draw the planet itself
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, planet.size, 0, Math.PI * 2);
+            ctx.fillStyle = planet.color;
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = planet.color;
+            ctx.fill();
+            ctx.shadowBlur = 0; // Reset shadow for next drawing
+        }
+
+        function drawSun(sun) {
+            // Draw the Sun (glowing effect)
+            const glowRadius = sun.size * 3;
+            
+            // Outer glow
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, glowRadius, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 255, 0, 0.5)';
+            ctx.fill();
+
+            // Core
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, sun.size, 0, Math.PI * 2);
+            ctx.fillStyle = sun.color;
+            ctx.fill();
+        }
+
+        // --- Animation Loop ---
+
+        function updatePositions() {
+            solarSystem.forEach(planet => {
+                if (planet.isStar) return; // Sun doesn't orbit
+
+                // Calculate current angle based on time and speed
+                // We use a time-based approach for smooth, consistent speed regardless of FPS
+                const time = Date.now() * 0.0001; // Scale time for speed adjustment
+                
+                // Angle = Initial_Angle + (Speed * Time)
+                // We use a base angle offset for each planet to ensure they start at different points
+                let angle = (time * planet.speed) + (planet.name.charCodeAt(0) * 0.1); 
+
+                // Calculate x and y coordinates based on polar to Cartesian conversion
+                const x = centerX + planet.radius * Math.cos(angle);
+                const y = centerY + planet.radius * Math.sin(angle);
+
+                // Redraw the planet at the new position
+                ctx.beginPath();
+                ctx.arc(x, y, planet.size, 0, Math.PI * 2);
+                ctx.fillStyle = planet.color;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = planet.color;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            });
+        }
+
+        function animate() {
+            // 1. Clear the canvas
+            ctx.clearRect(0, 0, width, height);
+
+            // 2. Draw background (Starfield)
+            drawStarfield();
+
+            // 3. Update positions and draw planets
+            updatePositions();
+
+            // 4. Draw the Sun (drawn last to sit on top of the orbits)
+            solarSystem.forEach(planet => {
+                if (planet.isStar) {
+                    drawSun(planet);
+                }
+            });
+
+            // Request the next frame
+            animationFrameId = requestAnimationFrame(animate);
+        }
+
+        // --- Initialization and Resize Handling ---
+
+        function resizeCanvas() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+            centerX = width / 2;
+            centerY = height / 2;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        // Start the animation
+        resizeCanvas(); // Initial setup
+        animate();
+
+    </script>
+</body>
+</html>

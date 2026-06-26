@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DNA Double Helix Animation</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #0a0a0a;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="dnaCanvas"></canvas>
+    <script>
+        const canvas = document.getElementById('dnaCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let width, height;
+        let animationFrame = 0;
+
+        // Configuration
+        const nodeCount = 40;
+        const helixRadius = 120;
+        const verticalSpacing = 12;
+        const twistSpeed = 0.02;
+        const rotationSpeed = 0.015;
+
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+        }
+
+        window.addEventListener('resize', resize);
+        resize();
+
+        function draw() {
+            // Clear canvas with a slight trail effect
+            ctx.fillStyle = 'rgba(10, 10, 10, 0.2)';
+            ctx.fillRect(0, 0, width, height);
+
+            const centerX = width / 2;
+            const centerY = height / 2;
+
+            // Calculate current rotation
+            const rotation = animationFrame * rotationSpeed;
+
+            // Draw the strands and rungs
+            for (let i = 0; i < nodeCount; i++) {
+                // Calculate vertical position
+                const y = centerY - (nodeCount * verticalSpacing / 2) + (i * verticalSpacing);
+                
+                // Calculate angles for two strands (offset by PI for opposite sides)
+                // The sine wave creates the spiral
+                const angle1 = Math.sin(i * 0.3 + rotation) * Math.PI;
+                const angle2 = Math.sin(i * 0.3 + rotation + Math.PI);
+
+                // Project 3D coordinates to 2D
+                // x = radius * cos(angle), z = radius * sin(angle)
+                // We ignore Z for 2D projection but use it to "shrink" the radius (perspective)
+                const x1 = Math.cos(angle1) * helixRadius;
+                const z1 = Math.sin(angle1) * helixRadius;
+                
+                const x2 = Math.cos(angle2) * helixRadius;
+                const z2 = Math.sin(angle2) * helixRadius;
+
+                // Perspective scaling (objects further away are smaller/dimmer)
+                const scale1 = 1 / (1 + z1 * 0.005);
+                const scale2 = 1 / (1 + z2 * 0.005);
+
+                const posX1 = centerX + x1 * scale1;
+                const posY1 = y;
+                
+                const posX2 = centerX + x2 * scale2;
+                const posY2 = y;
+
+                // Draw connecting rungs
+                ctx.beginPath();
+                ctx.moveTo(posX1, posY1);
+                ctx.lineTo(posX2, posY2);
+                // Color varies based on depth (z-index)
+                const alpha = (z1 > 0) ? 0.3 : 0.7;
+                ctx.strokeStyle = `rgba(100, 150, 255, ${alpha})`;
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                // Draw nodes
+                // Strand 1 (Cyanish)
+                ctx.beginPath();
+                ctx.arc(posX1, posY1, 3 * scale1, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(0, 200, 255, ${scale1})`;
+                ctx.fill();
+
+                // Strand 2 (Magentaish)
+                ctx.beginPath();
+                ctx.arc(posX2, posY2, 3 * scale2, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 0, 150, ${scale2})`;
+                ctx.fill();
+            }
+
+            animationFrame++;
+            requestAnimationFrame(draw);
+        }
+
+        draw();
+    </script>
+</body>
+</html>

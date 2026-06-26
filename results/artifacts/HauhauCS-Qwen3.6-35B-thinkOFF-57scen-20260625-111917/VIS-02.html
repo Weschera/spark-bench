@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spiral Galaxy</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #000; overflow: hidden; }
+canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="galaxy"></canvas>
+<script>
+const canvas = document.getElementById('galaxy');
+const ctx = canvas.getContext('2d');
+
+let W, H, cx, cy;
+function resize() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+    cx = W / 2;
+    cy = H / 2;
+}
+resize();
+window.addEventListener('resize', resize);
+
+const NUM_STARS = 2500;
+const NUM_ARMS = 3;
+const ARM_SPREAD = 0.6;
+const SPIRAL_TIGHTNESS = 0.025;
+const GALAXY_SCALE = Math.min(W, H) * 0.38;
+
+class Star {
+    constructor() {
+        this.reset();
+    }
+    reset() {
+        const armIndex = Math.floor(Math.random() * NUM_ARMS);
+        const armAngle = (armIndex / NUM_ARMS) * Math.PI * 2;
+
+        // Distance from center (with distribution favoring inner regions slightly)
+        const rRaw = Math.random();
+        const r = rRaw * rRaw * 0.8 + Math.random() * 0.2;
+        this.radius = r * GALAXY_SCALE;
+
+        // Angle along spiral
+        const spiralAngle = this.radius * SPIRAL_TIGHTNESS / GALAXY_SCALE;
+        const scatter = (Math.random() - 0.5) * ARM_SPREAD * (0.5 + r * 0.5);
+        this.angle = armAngle + spiralAngle + scatter;
+
+        // Size
+        this.size = 0.3 + Math.random() * 1.8;
+
+        // Color: mostly white/blue-white, some yellow/orange/red
+        const colorRoll = Math.random();
+        if (colorRoll < 0.05) {
+            this.color = [1.0, 0.6, 0.3]; // orange/red giant
+        } else if (colorRoll < 0.12) {
+            this.color = [1.0, 0.9, 0.6]; // yellow
+        } else if (colorRoll < 0.35) {
+            this.color = [0.7, 0.8, 1.0]; // blue-white
+        } else {
+            this.color = [0.95, 0.95, 1.0]; // white
+        }
+
+        // Twinkle
+        this.twinklePhase = Math.random() * Math.PI * 2;
+        this.twinkleSpeed = 0.5 + Math.random() * 3.0;
+        this.baseBrightness = 0.4 + Math.random() * 0.6;
+
+        // Differential rotation: inner stars orbit faster
+        // Angular velocity proportional to r^(-0.7) for a rough approximation
+        const normR = this.radius / GALAXY_SCALE;
+        this.angularVelocity = 0.00015 * Math.pow(normR + 0.05, -0.7);
+
+        // Slight orbital inclination for depth effect
+        this.inclination = (Math.random() - 0.5) * 0.15;
+    }
+
+    update(time) {
+        this.angle += this.angularVelocity;
+        this.currentBrightness = this.baseBrightness * (0.5 + 0.5 * Math.sin(time * this.twinkleSpeed + this.twinklePhase));
+    }
+
+    draw(ctx) {
+        const x = cx + Math.cos(this.angle) * this.radius;
+        const y = cy + Math.sin(this.angle) * this.radius * 0.35 + this.inclination * this.radius;
+
+        const alpha = Math.max(0, this.currentBrightness);
+        const s = this.size * (0.5 + alpha * 0.5);
+
+        if (s < 0.3) return;
+
+        ctx.beginPath();
+        ctx.arc(x, y, s, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${this.color[0]*255|0},${this.color[1]*255|0},${this.color[2]*255|0},${alpha})`;
+        ctx.fill();
+
+        // Glow for brighter/larger stars
+        if (s > 1.0 && alpha > 0.6) {
+            const glowSize = s * 4;
+            const grad = ctx.createRadialGradient(x, y, 0, x, y, glowSize);
+            grad.addColorStop(0, `rgba(${this.color[0]*255|0},${this.color[1]*255|0},${this.color[2]*255|0},${alpha * 0.15})`);
+            grad.addColorStop(1, `rgba(${this.color[0]*255|0},${this.color[1]*255|0},${this.color[2]*255|0},0)`);
+            ctx.beginPath();
+            ctx.arc(x, y, glowSize, 0, Math.PI * 2);
+            ctx.fillStyle = grad;
+            ctx.fill();
+        }
+    }
+}
+
+const stars = [];
+for (let i = 0; i < NUM_STARS; i++) {
+    stars.push(new Star());
+}
+
+// Background stars (fixed, very dim)
+const bgStars = [];
+for (let i = 0; i < 400; i++) {
+    bgStars.push({
+        x: Math.random() * W,
+        y: Math.random() * H,
+        size: Math.random() * 1.2,
+        brightness: 0.1 + Math.random() * 0.3,
+        twinklePhase: Math.random() * Math.PI * 2,
+        twinkleSpeed: 0.3 + Math.random() * 1.5
+    });
+}
+
+function drawCore(time) {
+    // Outer glow
+    const coreRadius = GALAXY_SCALE * 0.12;
+    const grad1 = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreRadius * 6);
+    grad1.addColorStop(0, 'rgba(255, 240, 220, 0.25)');
+    grad1.addColorStop(0.1, 'rgba(255, 220, 180, 0.12)');
+    grad1.addColorStop(0.3, 'rgba(200, 180, 255, 0.04)');
+    grad1.addColorStop(1, 'rgba(100, 100, 200, 0)');
+    ctx.beginPath();
+    ctx.arc(cx, cy, coreRadius * 6, 0, Math.PI * 2);
+    ctx.fillStyle = grad1;
+    ctx.fill();
+
+    // Inner bright core
+    const grad2 = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreRadius);
+    grad2.addColorStop(0, 'rgba(255, 250, 240, 0.95)');
+    grad2.addColorStop(0.2, 'rgba(255, 235, 200, 0.6)');
+    grad2.addColorStop(0.5, 'rgba(220, 200, 255, 0.2)');
+    grad2.addColorStop(1, 'rgba(150, 150, 200, 0)');
+    ctx.beginPath();
+    ctx.arc(cx, cy, coreRadius, 0, Math.PI * 2);
+    ctx.fillStyle = grad2;
+    ctx.fill();
+
+    // Core sparkle
+    const sparkle = 0.8 + 0.2 * Math.sin(time * 1.2);
+    const grad3 = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreRadius * 0.3);
+    grad3.addColorStop(0, `rgba(255, 255, 255, ${0.9 * sparkle})`);
+    grad3.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    ctx.beginPath();
+    ctx.arc(cx, cy, coreRadius * 0.3, 0, Math.PI * 2);
+    ctx.fillStyle = grad3;
+    ctx.fill();
+}
+
+function drawBackgroundStars(time) {
+    for (const s of bgStars) {
+        const twinkle = 0.5 + 0.5 * Math.sin(time * s.twinkleSpeed + s.twinklePhase);
+        const alpha = s.brightness * twinkle;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(200, 200, 220, ${alpha})`;
+        ctx.fill();
+    }
+}
+
+let lastTime = 0;
+function animate(timestamp) {
+    const time = timestamp / 1000;
+    const dt = time - lastTime;
+    lastTime = time;
+
+    // Fade trail effect
+    ctx.fillStyle = 'rgba(0, 0, 0, 1)';
+    ctx.fillRect(0, 0, W, H);
+
+    drawBackgroundStars(time);
+
+    // Sort stars by y for pseudo-depth (brighter stars drawn on top)
+    // Actually draw dim ones first, bright ones on top
+    stars.sort((a, b) => a.currentBrightness - b.currentBrightness);
+
+    for (const star of stars) {
+        star.update(time);
+    }
+
+    // Draw stars in order of brightness (dim first)
+    for (const star of stars) {
+        star.draw(ctx);
+    }
+
+    drawCore(time);
+
+    requestAnimationFrame(animate);
+}
+
+requestAnimationFrame(animate);
+</script>
+</body>
+</html>

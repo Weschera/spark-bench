@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rotating DNA Helix</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #111;
+            overflow: hidden;
+        }
+        canvas {
+            border: 1px solid #333;
+            background-color: #000;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="dnaCanvas" width="600" height="600"></canvas>
+
+    <script>
+        const canvas = document.getElementById('dnaCanvas');
+        const ctx = canvas.getContext('2d');
+        const W = canvas.width;
+        const H = canvas.height;
+
+        // DNA parameters
+        const numNodes = 20; // Number of nodes on each strand
+        const helixRadius = 200;
+        const strandWidth = 3;
+        const rungHeight = 15;
+        const rotationSpeed = 0.005; // Radians per frame
+        let rotationAngle = 0;
+
+        // Color gradients for the strands
+        const color1 = { base: [50, 100, 255], variation: 50 }; // Blueish
+        const color2 = { base: [255, 100, 150], variation: 50 }; // Pinkish/Reddish
+
+        /**
+         * Calculates the position of a node on the helix based on its index and rotation.
+         * @param {number} index - The index along the strand (0 to numNodes - 1).
+         * @param {number} strand - 0 for strand 1, 1 for strand 2.
+         * @returns {{x: number, y: number}} - The calculated coordinates.
+         */
+        function getNodePosition(index, strand) {
+            const angle = (index / numNodes) * Math.PI * 2 + rotationAngle;
+            const radius = helixRadius;
+
+            // Calculate position on the circle
+            const x = W / 2 + radius * Math.cos(angle);
+            const y = H / 2 + radius * Math.sin(angle);
+
+            // Add subtle vertical offset for the 'sinusoidal' look along the helix path
+            // This makes the nodes follow a slight curve rather than a perfect circle
+            const yOffset = Math.sin(index * 0.5 + rotationAngle * 2) * 10;
+
+            return { x: x, y: y + yOffset };
+        }
+
+        /**
+         * Draws a single DNA strand.
+         * @param {number} strand - 0 or 1.
+         * @param {object} colorConfig - Color configuration.
+         */
+        function drawStrand(strand, colorConfig) {
+            ctx.beginPath();
+            ctx.strokeStyle = `rgb(${colorConfig.base[0]}, ${colorConfig.base[1]}, ${colorConfig.base[2]})`;
+            ctx.lineWidth = strandWidth;
+
+            for (let i = 0; i < numNodes; i++) {
+                const pos = getNodePosition(i, strand);
+
+                if (i === 0) {
+                    ctx.moveTo(pos.x, pos.y);
+                } else {
+                    ctx.lineTo(pos.x, pos.y);
+                }
+            }
+            ctx.stroke();
+        }
+
+        /**
+         * Draws the connecting rungs between the two strands.
+         */
+        function drawRungs() {
+            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)'; // Light grey for rungs
+
+            for (let i = 0; i < numNodes; i++) {
+                const pos1 = getNodePosition(i, 0);
+                const pos2 = getNodePosition(i, 1);
+
+                // Draw the horizontal rung connecting the two points
+                ctx.beginPath();
+                ctx.moveTo(pos1.x, pos1.y);
+                ctx.lineTo(pos2.x, pos2.y);
+                ctx.stroke();
+            }
+        }
+
+        /**
+         * Main drawing loop.
+         */
+        function draw() {
+            // Clear the canvas with a dark background
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, W, H);
+
+            // Update rotation angle
+            rotationAngle += rotationSpeed;
+            if (rotationAngle > Math.PI * 2) {
+                rotationAngle -= Math.PI * 2;
+            }
+
+            // 1. Draw Strand 1
+            drawStrand(0, color1);
+
+            // 2. Draw Strand 2
+            drawStrand(1, color2);
+
+            // 3. Draw Rungs
+            drawRungs();
+
+            // Request next frame
+            requestAnimationFrame(draw);
+        }
+
+        // Start the animation
+        draw();
+    </script>
+</body>
+</html>

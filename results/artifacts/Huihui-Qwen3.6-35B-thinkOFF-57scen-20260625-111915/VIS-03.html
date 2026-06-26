@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DNA Double Helix</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0a0a12; display: flex; justify-content: center; align-items: center; min-height: 100vh; overflow: hidden; }
+canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<script>
+(function() {
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  const NUM_NODES = 60;
+  const HELIX_RADIUS = 120;
+  const VERTICAL_SPACING = 14;
+  const FOCAL_LENGTH = 600;
+  const ROTATION_SPEED = 0.008;
+  const PHASE_OFFSET = Math.PI;
+
+  const STRAND_A_COLOR = { r: 80, g: 200, b: 220 };
+  const STRAND_B_COLOR = { r: 220, g: 100, b: 180 };
+  const RUNG_COLOR = { r: 140, g: 160, b: 200 };
+
+  const centerX = () => canvas.width / 2;
+  const centerY = () => canvas.height / 2;
+  const maxZ = NUM_NODES * VERTICAL_SPACING;
+
+  function project(x, y, z) {
+    const scale = FOCAL_LENGTH / (FOCAL_LENGTH + z);
+    return {
+      sx: centerX() + x * scale,
+      sy: centerY() + y * scale,
+      scale: scale
+    };
+  }
+
+  function getStrandColor(nodeZ, strandIndex, rotationAngle) {
+    const base = strandIndex === 0 ? STRAND_A_COLOR : STRAND_B_COLOR;
+    const depthMod = (nodeZ / maxZ) * 40;
+    const rotMod = Math.sin(rotationAngle + nodeZ * 0.02) * 15;
+    return {
+      r: Math.min(255, Math.max(0, base.r + depthMod + rotMod)),
+      g: Math.min(255, Math.max(0, base.g + depthMod * 0.5 + rotMod)),
+      b: Math.min(255, Math.max(0, base.b + depthMod + rotMod))
+    };
+  }
+
+  function getNodeColor(nodeZ, strandIndex, rotationAngle) {
+    const base = strandIndex === 0 ? STRAND_A_COLOR : STRAND_B_COLOR;
+    const depthMod = (nodeZ / maxZ) * 60;
+    const rotMod = Math.sin(rotationAngle * 2 + nodeZ * 0.03) * 20;
+    return {
+      r: Math.min(255, Math.max(0, base.r * 1.2 + depthMod + rotMod)),
+      g: Math.min(255, Math.max(0, base.g * 1.2 + depthMod * 0.7 + rotMod)),
+      b: Math.min(255, Math.max(0, base.b * 1.2 + depthMod + rotMod))
+    };
+  }
+
+  let rotationAngle = 0;
+
+  function draw() {
+    ctx.fillStyle = '#0a0a12';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const allElements = [];
+
+    for (let i = 0; i < NUM_NODES; i++) {
+      const nodeZ = i * VERTICAL_SPACING;
+      const angle = (i / NUM_NODES) * Math.PI * 4 + rotationAngle;
+
+      const strandA = {
+        x: Math.cos(angle) * HELIX_RADIUS,
+        y: nodeZ - (maxZ / 2),
+        z: Math.sin(angle) * HELIX_RADIUS,
+        index: i,
+        strandIndex: 0
+      };
+
+      const angleB = angle + PHASE_OFFSET;
+      const strandB = {
+        x: Math.cos(angleB) * HELIX_RADIUS,
+        y: nodeZ - (maxZ / 2),
+        z: Math.sin(angleB) * HELIX_RADIUS,
+        index: i,
+        strandIndex: 1
+      };
+
+      const projA = project(strandA.x, strandA.y, strandA.z);
+      const projB = project(strandB.x, strandB.y, strandB.z);
+
+      allElements.push({
+        type: 'rung',
+        z: (strandA.z + strandB.z) / 2,
+        x1: projA.sx, y1: projA.sy,
+        x2: projB.sx, y2: projB.sy,
+        color: RUNG_COLOR
+      });
+
+      allElements.push({
+        type: 'node',
+        z: strandA.z,
+        x: projA.sx,
+        y: projA.sy,
+        scale: projA.scale,
+        strandIndex: 0,
+        nodeZ: nodeZ
+      });
+
+      allElements.push({
+        type: 'node',
+        z: strandB.z,
+        x: projB.sx,
+        y: projB.sy,
+        scale: projB.scale,
+        strandIndex: 1,
+        nodeZ: nodeZ
+      });
+    }
+
+    for (let i = 0; i < NUM_NODES - 1; i++) {
+      for (let s = 0; s < 2; s++) {
+        const angle = (i / NUM_NODES) * Math.PI * 4 + rotationAngle + (s === 1 ? PHASE_OFFSET : 0);
+        const angleNext = ((i + 1) / NUM_NODES) * Math.PI * 4 + rotationAngle + (s === 1 ? PHASE_OFFSET : 0);
+
+        const z1 = Math.sin(angle) * HELIX_RADIUS;
+        const z2 = Math.sin(angleNext) * HELIX_RADIUS;
+        const y1 = i * VERTICAL_SPACING - (maxZ / 2);
+        const y2 = (i + 1) * VERTICAL_SPACING - (maxZ / 2);
+
+        const x1 = Math.cos(angle) * HELIX_RADIUS;
+        const x2 = Math.cos(angleNext) * HELIX_RADIUS;
+
+        const p1 = project(x1, y1, z1);
+        const p2 = project(x2, y2, z2);
+
+        const depthAvg = (z1 + z2) / 2;
+        const brightness = 0.5 + 0.5 * (1 - (depthAvg + HELIX_RADIUS) / (2 * HELIX_RADIUS));
+
+        allElements.push({
+          type: 'strand',
+          z: depthAvg,
+          x1: p1.sx, y1: p1.sy,
+          x2: p2.sx, y2: p2.sy,
+          strandIndex: s,
+          nodeZ: i * VERTICAL_SPACING,
+          brightness: brightness
+        });
+      }
+    }
+
+    allElements.sort((a, b) => a.z - b.z);
+
+    for (const el of allElements) {
+      if (el.type === 'rung') {
+        const alpha = 0.3 + 0.4 * (1 - Math.abs(el.z) / (HELIX_RADIUS * 2));
+        ctx.strokeStyle = `rgba(${el.color.r}, ${el.color.g}, ${el.color.b}, ${alpha})`;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(el.x1, el.y1);
+        ctx.lineTo(el.x2, el.y2);
+        ctx.stroke();
+      } else if (el.type === 'strand') {
+        const col = el.strandIndex === 0 ? STRAND_A_COLOR : STRAND_B_COLOR;
+        const r = Math.min(255, col.r * el.brightness);
+        const g = Math.min(255, col.g * el.brightness);
+        const b = Math.min(255, col.b * el.brightness);
+        const alpha = 0.4 + 0.6 * (1 - Math.abs(el.z) / (HELIX_RADIUS * 2));
+        ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        ctx.lineWidth = 2.5 * el.brightness + 0.5;
+        ctx.beginPath();
+        ctx.moveTo(el.x1, el.y1);
+        ctx.lineTo(el.x2, el.y2);
+        ctx.stroke();
+      } else if (el.type === 'node') {
+        const col = getNodeColor(el.nodeZ, el.strandIndex, rotationAngle);
+        const depthFactor = 1 - (el.z + HELIX_RADIUS) / (2 * HELIX_RADIUS);
+        const radius = 3 * el.scale + 1;
+        const alpha = 0.5 + 0.5 * depthFactor;
+
+        ctx.beginPath();
+        ctx.arc(el.x, el.y, radius, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${col.r}, ${col.g}, ${col.b}, ${alpha})`;
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(el.x, el.y, radius * 1.8, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${col.r}, ${col.g}, ${col.b}, ${alpha * 0.2})`;
+        ctx.fill();
+      }
+    }
+
+    rotationAngle += ROTATION_SPEED;
+    requestAnimationFrame(draw);
+  }
+
+  draw();
+})();
+</script>
+</body>
+</html>

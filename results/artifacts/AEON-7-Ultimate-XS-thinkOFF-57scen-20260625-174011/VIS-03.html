@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rotating DNA Double Helix</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #111; /* Dark background */
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="dnaCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('dnaCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let width, height;
+
+        // DNA Configuration
+        const config = {
+            radius: 100,        // Radius of the helix
+            amplitude: 120,     // Vertical amplitude of the sine wave
+            frequency: 0.02,    // How tight the spiral is horizontally
+            speed: 0.02,        // Rotation speed
+            nodeSpacing: 15,    // Vertical distance between rungs
+            nodeSize: 6,        // Radius of the dots
+            colorStrand1: '#FF5733', // Reddish Orange
+            colorStrand2: '#33FF57', // Greenish
+            colorRung: '#FFFFFF'     // White (with opacity)
+        };
+
+        // Handle resizing
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+
+        let time = 0;
+
+        // Main Animation Loop
+        function animate() {
+            // Clear screen with a slight fade effect for motion trails (optional, set alpha to 1 for crisp)
+            ctx.fillStyle = 'rgba(17, 17, 17, 1)';
+            ctx.fillRect(0, 0, width, height);
+
+            // Calculate total number of nodes to fill the height
+            const centerY = height / 2;
+            const totalNodes = Math.ceil(height / config.nodeSpacing) + 2;
+
+            // We need to store the points to draw rungs *before* the nodes (so nodes appear on top)
+            const strand1Points = [];
+            const strand2Points = [];
+
+            // 1. Calculate positions
+            for (let i = -totalNodes; i <= totalNodes; i++) {
+                const y = centerY + (i * config.nodeSpacing);
+                
+                // Calculate horizontal offset based on sine wave
+                // We use 'time' to rotate the phase of the sine wave
+                const phase = i * config.frequency * 20 + time;
+                
+                // Strand 1: Standard Sine
+                const x1 = width / 2 + Math.sin(phase) * config.radius;
+                
+                // Strand 2: Opposite Sine (Phase shifted by PI)
+                const x2 = width / 2 + Math.sin(phase + Math.PI) * config.radius;
+
+                // Determine depth (Z-index simulation)
+                // Cosine of the phase determines if it's "front" or "back"
+                // Range of Cosine is -1 to 1. 
+                // If Cos > 0, it's on the right side of the screen, let's say it's "front"
+                // Actually, for a 3D effect, we map the Y-value of the sine wave (which is our X-offset) to Z.
+                // Let's use the raw sine value to determine opacity and size scaling.
+                
+                // Z-value for perspective: -1 (back) to 1 (front)
+                const z1 = Math.cos(phase);
+                const z2 = Math.cos(phase + Math.PI);
+
+                // Store points
+                strand1Points.push({x: x1, y: y, z: z1});
+                strand2Points.push({x: x2, y: y, z: z2});
+            }
+
+            // 2. Draw Rungs (Connecting lines)
+            ctx.lineWidth = 2;
+            for (let i = 0; i < strand1Points.length; i++) {
+                const p1 = strand1Points[i];
+                const p2 = strand2Points[i];
+
+                // Determine opacity based on average depth (to simulate 3D)
+                // If z is negative, it's further back (darker/smaller)
+                // If z is positive, it's closer (brighter/larger)
+                // Normalize z from [-1, 1] to [0.3, 1.0]
+                const avgZ = (p1.z + p2.z) / 2;
+                const alpha = 0.2 + (avgZ + 1) * 0.4; // Range 0.2 to 1.0
+
+                ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
+                ctx.beginPath();
+                ctx.moveTo(p1.x, p1.y);
+                ctx.lineTo(p2.x, p2.y);
+                ctx.stroke();
+            }
+
+            // 3. Draw Nodes (Strands)
+            for (let i = 0; i < strand1Points.length; i++) {
+                const p1 = strand1Points[i];
+                const p2 = strand2Points[i];
+
+                // Draw Strand 1 Node
+                const alpha1 = 0.5 + (p1.z + 1) * 0.5; // 0 to 1
+                const size1 = config.nodeSize * (0.8 + (p1.z + 1) * 0.4); // Scale size
+                ctx.fillStyle = hexToRgba(config.colorStrand1, alpha1);
+                ctx.beginPath();
+                ctx.arc(p1.x, p1.y, size1, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Draw Strand 2 Node
+                const alpha2 = 0.5 + (p2.z + 1) * 0.5;
+                const size2 = config.nodeSize * (0.8 + (p2.z + 1) * 0.4);
+                ctx.fillStyle = hexToRgba(config.colorStrand2, alpha2);
+                ctx.beginPath();
+                ctx.arc(p2.x, p2.y, size2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Update time for rotation
+            time += config.speed;
+
+            requestAnimationFrame(animate);
+        }
+
+        // Helper to add alpha to hex color
+        function hexToRgba(hex, alpha) {
+            // Remove '#'
+            hex = hex.replace('#', '');
+            // Parse r, g, b
+            const r = parseInt(hex.substring(0, 2), 16);
+            const g = parseInt(hex.substring(2, 4), 16);
+            const b = parseInt(hex.substring(4, 6), 16);
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        }
+
+        // Initialize
+        resize();
+        window.addEventListener('resize', resize);
+        animate();
+    </script>
+</body>
+</html>

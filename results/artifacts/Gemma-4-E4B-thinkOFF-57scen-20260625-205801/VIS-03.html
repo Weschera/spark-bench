@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rotating DNA Helix</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #111;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        canvas {
+            border: 1px solid #333;
+            background-color: #0a0a1a;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="dnaCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('dnaCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Set canvas dimensions to fit the viewport nicely
+        canvas.width = 800;
+        canvas.height = 600;
+
+        // --- DNA Parameters ---
+        const numNodes = 100; // Number of nodes per strand
+        const helixRadius = 150; // Radius of the helix path
+        const pitch = 40; // Vertical distance per full rotation (controls tightness)
+        const rotationSpeed = 0.005; // Speed of rotation in radians per frame
+        const rungLength = 20; // Length of the connecting rungs
+        const nodeRadius = 4;
+
+        // Color definitions (subtle variation)
+        const colorStrand1 = 'rgba(0, 191, 255, 0.8)'; // Deep Sky Blue
+        const colorStrand2 = 'rgba(255, 105, 180, 0.8)'; // Hot Pink
+        const colorRung = 'rgba(150, 150, 150, 0.9)'; // Gray
+
+        // State variable for continuous rotation
+        let rotationAngle = 0;
+
+        /**
+         * Calculates the position of a node on the helix for a given index 'i' and strand 's'.
+         * @param {number} i - Node index (0 to numNodes - 1).
+         * @param {number} s - Strand index (1 or 2).
+         * @returns {{x: number, y: number, z: number}} 3D coordinates (we project to 2D).
+         */
+        function getHelixPosition(i, s) {
+            // Parameter 't' controls the position along the helix (0 to 2*PI * numNodes/period)
+            // We use the index directly to map it along the curve.
+            const t = (i / numNodes) * 4 * Math.PI; // 4 full turns for a good visual
+            
+            // The helical path equations:
+            // X = R * cos(t)
+            // Y = R * sin(t)
+            // Z = (t / (2 * PI)) * pitch  <- This is the vertical displacement
+            
+            // For the double helix, the two strands are offset in their initial phase/position.
+            const phaseOffset = s === 1 ? 0 : Math.PI; 
+
+            const x = helixRadius * Math.cos(t + phaseOffset);
+            const y = helixRadius * Math.sin(t + phaseOffset);
+            // The Z coordinate determines the height/twist
+            const z = (t / (2 * Math.PI)) * pitch; 
+
+            return { x, y, z };
+        }
+
+        /**
+         * Projects 3D coordinates (x, y, z) onto the 2D canvas plane.
+         * We use a simple perspective projection centered on the canvas middle.
+         * @param {number} x - 3D X coordinate.
+         * @param {number} y - 3D Y coordinate.
+         * @param {number} z - 3D Z coordinate (height).
+         * @returns {{screenX: number, screenY: number}} 2D screen coordinates.
+         */
+        function project(x, y, z) {
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            
+            // Apply rotation around the Y-axis (simulating viewing angle change)
+            // RotatedX = X * cos(angle) + Z * sin(angle)
+            // RotatedZ = -X * sin(angle) + Z * cos(angle)
+            const cosAngle = Math.cos(rotationAngle);
+            const sinAngle = Math.sin(rotationAngle);
+
+            const rotatedX = x * cosAngle + z * sinAngle;
+            const rotatedZ = -x * sinAngle + z * cosAngle;
+
+            // Simple perspective scaling (objects further 'back' (negative Z) appear smaller)
+            // We use the rotatedZ as a proxy for depth for scaling.
+            const scaleFactor = 1 / (1 + rotatedZ * 0.05); 
+            
+            const screenX = centerX + rotatedX * scaleFactor * 2;
+            const screenY = centerY - (y * scaleFactor * 2); // Y is inverted in canvas coordinates
+            
+            return { screenX, screenY };
+        }
+
+
+        /**
+         * Draws the DNA structure for the current frame.
+         */
+        function drawDNA() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. Draw the Rungs (Connections)
+            ctx.strokeStyle = colorRung;
+            ctx.lineWidth = 2;
+            
+            for (let i = 0; i < numNodes - 1; i++) {
+                // Calculate positions for corresponding nodes on both strands
+                const pos1 = getHelixPosition(i, 1);
+                const pos2 = getHelixPosition(i, 2);
+                
+                const proj1 = project(pos1.x, pos1.y, pos1.z);
+                const proj2 = project(pos2.x, pos2.y, pos2.z);
+
+                // Draw the rung connecting the two projected points
+                ctx.beginPath();
+                ctx.moveTo(proj1.screenX, proj1.screenY);
+                ctx.lineTo(proj2.screenX, proj2.screenY);
+                ctx.stroke();
+            }
+
+            // 2. Draw the Strands (Nodes and Lines)
+            
+            // Strand 1 (Blue)
+            ctx.strokeStyle = colorStrand1;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            for (let i = 0; i < numNodes; i++) {
+                const pos = getHelixPosition(i, 1);
+                const proj = project(pos.x, pos.y, pos.z);
+
+                if (i === 0) {
+                    ctx.moveTo(proj.screenX, proj.screenY);
+                } else {
+                    ctx.lineTo(proj.screenX, proj.screenY);
+                }
+                
+                // Draw the node (circle) at the current position
+                ctx.fillStyle = colorStrand1;
+                ctx.beginPath();
+                ctx.arc(proj.screenX, proj.screenY, nodeRadius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.stroke();
+
+            // Strand 2 (Pink)
+            ctx.strokeStyle = colorStrand2;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            for (let i = 0; i < numNodes; i++) {
+                const pos = getHelixPosition(i, 2);
+                const proj = project(pos.x, pos.y, pos.z);
+
+                if (i === 0) {
+                    ctx.moveTo(proj.screenX, proj.screenY);
+                } else {
+                    ctx.lineTo(proj.screenX, proj.screenY);
+                }
+
+                // Draw the node (circle) at the current position
+                ctx.fillStyle = colorStrand2;
+                ctx.beginPath();
+                ctx.arc(proj.screenX, proj.screenY, nodeRadius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.stroke();
+        }
+
+        /**
+         * The main animation loop.
+         */
+        function animate() {
+            // Update rotation angle for smooth animation
+            rotationAngle += rotationSpeed;
+
+            // Redraw the scene
+            drawDNA();
+
+            // Request the next frame
+            requestAnimationFrame(animate);
+        }
+
+        // Start the animation
+        animate();
+    </script>
+</body>
+</html>

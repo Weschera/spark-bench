@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Rotating DNA Double Helix</title>
+<style>
+  body { margin:0; overflow:hidden; background:#111; }
+  canvas { display:block; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+(() => {
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  const NODE_COUNT = 150;          // nodes per strand
+  const RADIUS1 = 100;             // radius of left strand
+  const RADIUS2 = 105;             // radius of right strand (slightly larger)
+  const V_SPACING = 10;            // vertical step between nodes
+  const ANGLE_STEP = Math.PI / NODE_COUNT; // angular step between consecutive nodes
+  let globalAngle = 0;             // rotation angle
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    globalAngle += 0.01; // rotation speed
+
+    for (let i = 0; i < NODE_COUNT; i++) {
+      const angle1 = i * ANGLE_STEP + globalAngle;
+      const angle2 = angle1 + Math.PI; // opposite side of the helix
+
+      const x1 = RADIUS1 * Math.cos(angle1);
+      const x2 = RADIUS2 * Math.cos(angle2);
+      const y = i * V_SPACING; // same vertical level for both strands → horizontal rungs
+
+      // draw the rung (horizontal line)
+      ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x1, y);
+      ctx.lineTo(x2, y);
+      ctx.stroke();
+
+      // draw node on left strand
+      const hue1 = (i / NODE_COUNT * 180 + globalAngle * 180 / Math.PI) % 360;
+      ctx.fillStyle = `hsl(${hue1},80%,60%)`;
+      ctx.beginPath();
+      ctx.arc(x1, y, 3, 0, Math.PI * 2);
+      ctx.fill();
+
+      // draw node on right strand
+      const hue2 = (i / NODE_COUNT * 180 + globalAngle * 180 / Math.PI + 180) % 360;
+      ctx.fillStyle = `hsl(${hue2},80%,60%)`;
+      ctx.beginPath();
+      ctx.arc(x2, y, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    requestAnimationFrame(draw);
+  }
+
+  draw();
+})();
+</script>
+</body>
+</html>

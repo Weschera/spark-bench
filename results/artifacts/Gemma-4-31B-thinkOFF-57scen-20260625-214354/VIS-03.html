@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DNA Double Helix Animation</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #050505;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="dnaCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('dnaCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let width, height;
+        let rotation = 0;
+
+        // Configuration
+        const nodesCount = 40;       // Number of pairs
+        const helixRadius = 100;     // Width of the helix
+        const verticalSpacing = 20;  // Distance between rungs
+        const nodeRadius = 4;        // Size of the spheres
+        const speed = 0.02;          // Rotation speed
+
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+        }
+
+        window.addEventListener('resize', resize);
+        resize();
+
+        function project(x, y, z) {
+            // Simple orthographic projection with a bit of depth scaling
+            const scale = 1; 
+            return {
+                x: width / 2 + x * scale,
+                y: height / 2 + y * scale,
+                z: z
+            };
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+            
+            rotation += speed;
+            const points = [];
+
+            // Calculate positions for all nodes
+            for (let i = 0; i < nodesCount; i++) {
+                const y = (i - nodesCount / 2) * verticalSpacing;
+                const angle = rotation + (i * 0.3);
+                
+                // Strand 1
+                const x1 = Math.cos(angle) * helixRadius;
+                const z1 = Math.sin(angle) * helixRadius;
+                
+                // Strand 2 (180 degrees offset)
+                const x2 = Math.cos(angle + Math.PI) * helixRadius;
+                const z2 = Math.sin(angle + Math.PI) * helixRadius;
+
+                points.push({
+                    p1: project(x1, y, z1),
+                    p2: project(x2, y, z2),
+                    z1: z1,
+                    z2: z2
+                });
+            }
+
+            // Sort points by Z-index to handle depth (Painters Algorithm)
+            // We draw the rungs and nodes based on their average depth
+            const sortedIndices = Array.from(Array(nodesCount).keys())
+                .sort((a, b) => (points[b].z1 + points[b].z2) - (points[a].z1 + points[a].z2));
+
+            sortedIndices.forEach(i => {
+                const { p1, p2, z1, z2 } = points[i];
+                
+                // Determine opacity/brightness based on depth
+                const depthFactor = (z1 + z2) / (2 * helixRadius); 
+                const alpha = 0.3 + (depthFactor + 1) * 0.3;
+
+                // Draw Rung (Connecting line)
+                ctx.beginPath();
+                ctx.moveTo(p1.x, p1.y);
+                ctx.lineTo(p2.x, p2.y);
+                ctx.strokeStyle = `rgba(150, 150, 150, ${alpha * 0.5})`;
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                // Draw Node 1 (Cyan-ish)
+                ctx.beginPath();
+                ctx.arc(p1.x, p1.y, nodeRadius, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(0, 200, 255, ${alpha})`;
+                ctx.fill();
+
+                // Draw Node 2 (Magenta-ish)
+                ctx.beginPath();
+                ctx.arc(p2.x, p2.y, nodeRadius, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 0, 150, ${alpha})`;
+                ctx.fill();
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+    </script>
+</body>
+</html>

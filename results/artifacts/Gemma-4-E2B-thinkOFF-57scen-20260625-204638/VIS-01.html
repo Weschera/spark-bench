@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canvas Solar System</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000000;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="solarSystemCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('solarSystemCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Set canvas dimensions to fill the window
+        let W = window.innerWidth;
+        let H = window.innerHeight;
+        canvas.width = W;
+        canvas.height = H;
+
+        // --- Constants ---
+        const CENTER_X = W / 2;
+        const CENTER_Y = H / 2;
+        const SCALE_FACTOR = 1; // Base scaling for visualization
+        const TIME_SCALE = 0.002; // Controls orbital speed
+
+        // --- Celestial Bodies Data ---
+        const celestialBodies = [
+            // Sun (Center)
+            {
+                name: "Sun",
+                radius: 30,
+                color: "yellow",
+                mass: 100,
+                orbitRadius: 0,
+                orbitalSpeed: 0, // Doesn't orbit, it's the center
+                isStar: true
+            },
+            // Planet 1: Mercury
+            {
+                name: "Mercury",
+                radius: 5,
+                color: "#a9a9a9",
+                mass: 0.1,
+                orbitRadius: 80,
+                orbitalSpeed: 1.5, // Faster orbit
+                angle: 0,
+                orbitPeriod: 100, // Time units per orbit
+                distance: 80
+            },
+            // Planet 2: Venus
+            {
+                name: "Venus",
+                radius: 8,
+                color: "#e6b800",
+                mass: 0.2,
+                orbitRadius: 130,
+                orbitalSpeed: 0.8,
+                angle: 0,
+                orbitPeriod: 150,
+                distance: 130
+            },
+            // Planet 3: Earth
+            {
+                name: "Earth",
+                radius: 10,
+                color: "#4169e1",
+                mass: 0.3,
+                orbitRadius: 180,
+                orbitalSpeed: 0.6,
+                angle: 0,
+                orbitPeriod: 200,
+                distance: 180
+            },
+            // Planet 4: Mars
+            {
+                name: "Mars",
+                radius: 6,
+                color: "#cd5c5c",
+                mass: 0.25,
+                orbitRadius: 250,
+                orbitalSpeed: 0.4,
+                angle: 0,
+                orbitPeriod: 300,
+                distance: 250
+            },
+            // Planet 5: Jupiter (Larger orbit)
+            {
+                name: "Jupiter",
+                radius: 15,
+                color: "#f4a460",
+                mass: 1.5,
+                orbitRadius: 350,
+                orbitalSpeed: 0.25,
+                angle: 0,
+                orbitPeriod: 500,
+                distance: 350
+            },
+            // Planet 6: Saturn (Outer orbit)
+            {
+                name: "Saturn",
+                radius: 12,
+                color: "#f0e68c",
+                mass: 1,
+                orbitRadius: 450,
+                orbitalSpeed: 0.2,
+                angle: 0,
+                orbitPeriod: 700,
+                distance: 450
+            }
+        ];
+
+        // --- Animation Loop Variables ---
+        let lastTime = 0;
+
+        // --- Drawing Functions ---
+
+        function drawStarfield() {
+            // Dark background is set in CSS, but we can add subtle stars if desired
+            // For simplicity, we rely on the black background.
+        }
+
+        function drawSolarSystem(time) {
+            // 1. Clear the canvas
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)'; // Slight trail effect for smoothness
+            ctx.fillRect(0, 0, W, H);
+
+            // 2. Draw the Sun (Center)
+            const sun = celestialBodies.find(body => body.isStar);
+            if (sun) {
+                ctx.fillStyle = sun.color;
+                ctx.shadowBlur = 40;
+                ctx.shadowColor = sun.color;
+                ctx.beginPath();
+                ctx.arc(CENTER_X, CENTER_Y, sun.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0; // Reset shadow for other elements
+            }
+
+            // 3. Draw Planets and their orbits
+            celestialBodies.forEach(body => {
+                if (body.name === "Sun") return;
+
+                // Calculate current angle based on time and orbital speed
+                // Angle = (Time / Period) * 2 * PI
+                body.angle = (time * TIME_SCALE * body.orbitalSpeed) % (2 * Math.PI);
+
+                // Calculate position on the circle
+                const x = CENTER_X + body.distance * Math.cos(body.angle);
+                const y = CENTER_Y + body.distance * Math.sin(body.angle);
+
+                // Draw Orbit Path (Optional: Faint circle)
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.arc(CENTER_X, CENTER_Y, body.distance, 0, Math.PI * 2);
+                ctx.stroke();
+
+                // Draw the Planet
+                ctx.fillStyle = body.color;
+                ctx.beginPath();
+                ctx.arc(x, y, body.radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Optional: Draw a small glow/highlight
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = body.color;
+                ctx.beginPath();
+                ctx.arc(x, y, body.radius * 1.5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0; // Reset shadow
+            });
+        }
+
+        // --- Main Animation Loop ---
+
+        function animate(currentTime) {
+            // Calculate elapsed time since start or use currentTime directly
+            const deltaTime = currentTime - lastTime;
+            lastTime = currentTime;
+
+            drawSolarSystem(currentTime);
+
+            requestAnimationFrame(animate);
+        }
+
+        // Handle resizing the window
+        window.addEventListener('resize', () => {
+            W = window.innerWidth;
+            H = window.innerHeight;
+            canvas.width = W;
+            canvas.height = H;
+            CENTER_X = W / 2;
+            CENTER_Y = H / 2;
+        });
+
+        // Start the animation
+        requestAnimationFrame(animate);
+
+    </script>
+</body>
+</html>

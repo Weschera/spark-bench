@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DNA Double Helix</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #000; overflow: hidden; }
+    canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="dna"></canvas>
+<script>
+const canvas = document.getElementById('dna');
+const ctx = canvas.getContext('2d');
+
+let width, height, centerX, centerY;
+let phase = 0;
+
+function resize() {
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = window.innerHeight;
+    centerX = width / 2;
+    centerY = height / 2;
+}
+resize();
+window.addEventListener('resize', resize);
+
+const NUM_NODES = 60;
+const RADIUS = Math.min(width, height) * 0.18;
+const HEIGHT_STEP = height / (NUM_NODES - 1);
+const ROTATION_SPEED = 0.015;
+const PERSPECTIVE = 800;
+const NODE_RADIUS = 5;
+
+function getNodePosition(strand, index) {
+    const y = index * HEIGHT_STEP - height / 2;
+    const angle = phase + strand * Math.PI + index * 0.3;
+    const x = RADIUS * Math.sin(angle);
+    const z = RADIUS * Math.cos(angle);
+    return { x, y, z, angle };
+}
+
+function project(pos) {
+    const scale = PERSPECTIVE / (PERSPECTIVE + pos.z);
+    return {
+        x: centerX + pos.x * scale,
+        y: centerY + pos.y * scale,
+        scale: scale
+    };
+}
+
+function getStrandColor(strand, z, maxZ) {
+    const t = (z + maxZ) / (2 * maxZ);
+    if (strand === 0) {
+        const r = Math.floor(60 + 120 * t);
+        const g = Math.floor(120 + 135 * t);
+        const b = Math.floor(180 + 75 * t);
+        return `rgb(${r},${g},${b})`;
+    } else {
+        const r = Math.floor(180 + 75 * t);
+        const g = Math.floor(80 + 60 * t);
+        const b = Math.floor(120 + 135 * t);
+        return `rgb(${r},${g},${b})`;
+    }
+}
+
+function getRungColor(z, maxZ) {
+    const t = (z + maxZ) / (2 * maxZ);
+    const alpha = 0.3 + 0.7 * t;
+    const r = Math.floor(100 + 155 * t);
+    const g = Math.floor(140 + 115 * t);
+    const b = Math.floor(160 + 95 * t);
+    return `rgba(${r},${g},${b},${alpha})`;
+}
+
+function drawNode(pos, color, scale) {
+    const r = NODE_RADIUS * scale;
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(pos.x - r * 0.3, pos.y - r * 0.3, r * 0.4, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,255,255,${0.3 * scale})`;
+    ctx.fill();
+}
+
+function drawConnection(pos1, pos2, color) {
+    ctx.beginPath();
+    ctx.moveTo(pos1.x, pos1.y);
+    ctx.lineTo(pos2.x, pos2.y);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2 * Math.min(pos1.scale, pos2.scale);
+    ctx.stroke();
+}
+
+function drawRung(pos1, pos2, color) {
+    ctx.beginPath();
+    ctx.moveTo(pos1.x, pos1.y);
+    ctx.lineTo(pos2.x, pos2.y);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5 * Math.min(pos1.scale, pos2.scale);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(pos2.x, pos2.y, 2 * pos2.scale, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+}
+
+function animate() {
+    ctx.fillStyle = '#050810';
+    ctx.fillRect(0, 0, width, height);
+
+    const maxZ = RADIUS;
+    const nodes = [];
+
+    for (let i = 0; i < NUM_NODES; i++) {
+        const pos0 = getNodePosition(0, i);
+        const pos1 = getNodePosition(1, i);
+        const proj0 = project(pos0);
+        const proj1 = project(pos1);
+        const avgZ = (pos0.z + pos1.z) / 2;
+
+        nodes.push({
+            index: i,
+            pos0, proj0,
+            pos1, proj1,
+            avgZ,
+            color0: getStrandColor(0, avgZ, maxZ),
+            color1: getStrandColor(1, avgZ, maxZ),
+            rungColor: getRungColor(avgZ, maxZ)
+        });
+    }
+
+    nodes.sort((a, b) => b.avgZ - a.avgZ);
+
+    for (let i = 0; i < nodes.length - 1; i++) {
+        const curr = nodes[i];
+        const next = nodes[i + 1];
+
+        if (Math.abs(curr.index - next.index) <= 1) {
+            drawConnection(curr.proj0, next.proj0, curr.color0);
+            drawConnection(curr.proj1, next.proj1, curr.color1);
+        }
+    }
+
+    for (const node of nodes) {
+        drawRung(node.proj0, node.proj1, node.rungColor);
+    }
+
+    for (const node of nodes) {
+        drawNode(node.proj0, node.color0, node.proj0.scale);
+        drawNode(node.proj1, node.color1, node.proj1.scale);
+    }
+
+    phase += ROTATION_SPEED;
+    requestAnimationFrame(animate);
+}
+
+animate();
+</script>
+</body>
+</html>

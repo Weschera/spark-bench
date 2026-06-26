@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rotating DNA Helix</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #0a0a1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        canvas {
+            border: 1px solid #333;
+            background-color: #000000;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="dnaCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('dnaCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Set canvas dimensions to fill the window
+        function resizeCanvas() {
+            canvas.width = window.innerWidth * 0.9;
+            canvas.height = window.innerHeight * 0.9;
+            if (canvas.width > window.innerWidth * 0.9) {
+                 canvas.width = window.innerWidth * 0.9;
+                 canvas.height = window.innerHeight;
+            }
+            canvas.width = Math.min(canvas.width, window.innerWidth * 0.9);
+            canvas.height = Math.min(canvas.height, window.innerHeight * 0.9);
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const helixRadius = Math.min(centerX, centerY) * 0.4;
+        const numNodes = 30;
+        const strandThickness = 2;
+        const rungHeight = 15;
+        const rungWidth = 1;
+
+        let rotationAngle = 0;
+        let time = 0;
+
+        // Color definitions for subtle variation
+        const color1 = 'rgba(0, 150, 255, 0.8)'; // Blueish
+        const color2 = 'rgba(255, 100, 180, 0.8)'; // Pinkish
+
+        // --- Node Structure ---
+        class Node {
+            constructor(index, strandIndex) {
+                this.index = index;
+                this.strandIndex = strandIndex;
+                this.angle = (index / numNodes) * Math.PI * 2;
+                this.radius = helixRadius;
+            }
+
+            draw(ctx, rotationOffset) {
+                const x = centerX + this.radius * Math.cos(this.angle + rotationOffset);
+                const y = centerY + this.radius * Math.sin(this.angle + rotationOffset);
+
+                ctx.beginPath();
+                ctx.arc(x, y, 3, 0, Math.PI * 2);
+                ctx.fillStyle = this.strandIndex === 0 ? color1 : color2;
+                ctx.fill();
+            }
+        }
+
+        const nodes = [];
+        for (let i = 0; i < numNodes; i++) {
+            nodes.push(new Node(i, 0)); // Strand 1
+            nodes.push(new Node(i, 1)); // Strand 2
+        }
+
+        // --- Drawing Functions ---
+
+        function drawHelix() {
+            // Clear canvas
+            ctx.fillStyle = '#0a0a1a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Calculate dynamic rotation
+            rotationAngle += 0.005;
+            time += 1;
+
+            // Draw the central axis (optional, for context)
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 2, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.stroke();
+
+            // Draw the strands (Nodes)
+            nodes.forEach(node => {
+                node.draw(ctx, rotationAngle);
+            });
+
+            // Draw the rungs (connecting horizontal lines)
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = rungWidth;
+
+            for (let i = 0; i < numNodes; i++) {
+                const node1 = nodes[2 * i];     // Node for strand 1
+                const node2 = nodes[2 * i + 1]; // Node for strand 2
+
+                // Calculate positions considering the rotation
+                const x1 = centerX + node1.radius * Math.cos(node1.angle + rotationAngle);
+                const y1 = centerY + node1.radius * Math.sin(node1.angle + rotationAngle);
+
+                const x2 = centerX + node2.radius * Math.cos(node2.angle + rotationAngle);
+                const y2 = centerY + node2.radius * Math.sin(node2.angle + rotationAngle);
+
+                // Draw the rung
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+            }
+        }
+
+        // --- Animation Loop ---
+        function animate() {
+            drawHelix();
+            requestAnimationFrame(animate);
+        }
+
+        // Start the animation
+        animate();
+
+    </script>
+</body>
+</html>

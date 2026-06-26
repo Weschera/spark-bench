@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DNA Helix Animation</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #0a0a0a;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="dnaCanvas"></canvas>
+    <script>
+        const canvas = document.getElementById('dnaCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let width, height;
+        let animationFrame = 0;
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+
+        window.addEventListener('resize', resize);
+        resize();
+
+        function draw() {
+            // Clear background
+            ctx.fillStyle = 'rgba(10, 10, 10, 0.2)'; // Slight trail effect
+            ctx.fillRect(0, 0, width, height);
+
+            const centerX = width / 2;
+            const centerY = height / 2;
+            
+            // Parameters
+            const numNodes = 40;
+            const radius = 120;
+            const heightStep = 12; // Vertical distance between nodes
+            const rotationSpeed = 0.03;
+            
+            animationFrame += rotationSpeed;
+
+            // Draw the DNA Strands
+            for (let i = 0; i < numNodes; i++) {
+                // Calculate vertical position (y)
+                const y = centerY - (i * heightStep) + (numNodes * heightStep / 2);
+                
+                // Calculate angle for the spiral
+                // Strand 1 is at angle theta, Strand 2 is at theta + PI
+                const angle = (i * 0.4) + animationFrame;
+                
+                const x1 = centerX + Math.cos(angle) * radius;
+                const z1 = Math.sin(angle) * radius; // Depth perception (fake 3D)
+                
+                const x2 = centerX + Math.cos(angle + Math.PI) * radius;
+                const z2 = Math.sin(angle + Math.PI) * radius;
+
+                // Perspective scaling (smaller when "further back")
+                const scale1 = (z1 + radius) / (2 * radius);
+                const scale2 = (z2 + radius) / (2 * radius);
+
+                // Draw Rungs (connecting lines)
+                if (i > 0) {
+                    ctx.beginPath();
+                    ctx.moveTo(x1, y - (i-1) * heightStep);
+                    ctx.lineTo(x2, y - (i-1) * heightStep);
+                    // Color based on depth
+                    ctx.strokeStyle = `rgba(255, 255, 255, ${0.2 + (scale1 + scale2) / 4})`;
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                }
+
+                // Draw Nodes (Strand 1)
+                ctx.beginPath();
+                ctx.arc(x1, y, 3 * scale1, 0, Math.PI * 2);
+                ctx.fillStyle = '#4488ff'; // Blueish
+                ctx.fill();
+
+                // Draw Nodes (Strand 2)
+                ctx.beginPath();
+                ctx.arc(x2, y, 3 * scale2, 0, Math.PI * 2);
+                ctx.fillStyle = '#ff4488'; // Pinkish
+                ctx.fill();
+            }
+
+            requestAnimationFrame(draw);
+        }
+
+        draw();
+    </script>
+</body>
+</html>

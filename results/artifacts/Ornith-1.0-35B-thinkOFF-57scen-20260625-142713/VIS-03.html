@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rotating DNA Double Helix</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #0a0a0a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="dnaCanvas"></canvas>
+    <script>
+        const canvas = document.getElementById('dnaCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let width, height;
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+
+        window.addEventListener('resize', resize);
+        resize();
+
+        // DNA parameters
+        const numNodes = 40;
+        const radius = 150;
+        const verticalSpacing = 25;
+        const twistAngle = 0.3; // radians per node
+        const rotationSpeed = 0.02;
+        let currentRotation = 0;
+
+        // Colors for the two strands
+        const color1 = { r: 0, g: 200, b: 255 }; // Cyan
+        const color2 = { r: 255, g: 50, b: 150 }; // Pink/Magenta
+
+        function lerpColor(c1, c2, t) {
+            return {
+                r: c1.r + (c2.r - c1.r) * t,
+                g: c1.g + (c2.g - c1.g) * t,
+                b: c1.b + (c2.b - c1.b) * t
+            };
+        }
+
+        function colorToString(c, alpha = 1) {
+            return `rgba(${Math.round(c.r)}, ${Math.round(c.g)}, ${Math.round(c.b)}, ${alpha})`;
+        }
+
+        function drawNode(x3d, y3d, z3d, color, radiusSize) {
+            // Simple perspective projection
+            const perspective = 800;
+            const scale = perspective / (perspective + z3d);
+            const x2d = width / 2 + x3d * scale;
+            const y2d = height / 2 + y3d * scale;
+
+            const size = radiusSize * scale;
+
+            // Glow effect
+            ctx.beginPath();
+            ctx.arc(x2d, y2d, size * 2, 0, Math.PI * 2);
+            ctx.fillStyle = colorToString(color, 0.3);
+            ctx.fill();
+
+            // Node
+            ctx.beginPath();
+            ctx.arc(x2d, y2d, size, 0, Math.PI * 2);
+            ctx.fillStyle = colorToString(color, 0.9);
+            ctx.fill();
+            ctx.strokeStyle = colorToString(color, 1);
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+        }
+
+        function drawRung(x1_3d, y1_3d, z1_3d, x2_3d, y2_3d, z2_3d, color1, color2) {
+            // Calculate 2D positions with perspective
+            const perspective = 800;
+            const scale1 = perspective / (perspective + z1_3d);
+            const scale2 = perspective / (perspective + z2_3d);
+
+            const x1_2d = width / 2 + x1_3d * scale1;
+            const y1_2d = height / 2 + y1_3d * scale1;
+            const x2_2d = width / 2 + x2_3d * scale2;
+            const y2_2d = height / 2 + y2_3d * scale2;
+
+            // Draw the rung with a gradient
+            const gradient = ctx.createLinearGradient(x1_2d, y1_2d, x2_2d, y2_2d);
+            gradient.addColorStop(0, colorToString(color1, 0.6));
+            gradient.addColorStop(0.5, colorToString(lerpColor(color1, color2, 0.5), 0.8));
+            gradient.addColorStop(1, colorToString(color2, 0.6));
+
+            ctx.beginPath();
+            ctx.moveTo(x1_2d, y1_2d);
+            ctx.lineTo(x2_2d, y2_2d);
+            ctx.strokeStyle = gradient;
+            ctx.lineWidth = 3;
+            ctx.stroke();
+        }
+
+        function animate() {
+            // Clear canvas with dark background
+            ctx.fillStyle = '#0a0a0a';
+            ctx.fillRect(0, 0, width, height);
+
+            // Update rotation
+            currentRotation += rotationSpeed;
+
+            // Collect all elements to draw (nodes and rungs)
+            const elements = [];
+
+            for (let i = 0; i < numNodes; i++) {
+                const y = (i - numNodes / 2) * verticalSpacing;
+                const angle1 = i * twistAngle + currentRotation;
+                const angle2 = i * twistAngle + currentRotation + Math.PI;
+
+                const x1 = Math.cos(angle1) * radius;
+                const z1 = Math.sin(angle1) * radius;
+                const x2 = Math.cos(angle2) * radius;
+                const z2 = Math.sin(angle2) * radius;
+
+                // Add rung
+                elements.push({
+                    type: 'rung',
+                    z: (z1 + z2) / 2, // Average z for depth sorting
+                    data: { x1_3d: x1, y1_3d: y, z1_3d: z1, x2_3d: x2, y2_3d: y, z2_3d: z2 }
+                });
+
+                // Add nodes
+                elements.push({
+                    type: 'node',
+                    z: z1,
+                    data: { x3d: x1, y3d: y, color: color1, radius: 6 }
+                });
+                elements.push({
+                    type: 'node',
+                    z: z2,
+                    data: { x3d: x2, y3d: y, color: color2, radius: 6 }
+                });
+            }
+
+            // Sort by depth (z-coordinate) - farther objects first
+            elements.sort((a, b) => b.z - a.z);
+
+            // Draw all elements
+            for (const element of elements) {
+                if (element.type === 'rung') {
+                    drawRung(
+                        element.data.x1_3d, element.data.y1_3d, element.data.z1_3d,
+                        element.data.x2_3d, element.data.y2_3d, element.data.z2_3d,
+                        color1, color2
+                    );
+                } else {
+                    drawNode(
+                        element.data.x3d, element.data.y3d, element.data.z,
+                        element.data.color,
+                        element.data.radius
+                    );
+                }
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+    </script>
+</body>
+</html>

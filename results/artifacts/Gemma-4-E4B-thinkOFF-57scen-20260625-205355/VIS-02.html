@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spiral Galaxy Animation</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="galaxyCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('galaxyCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let width, height;
+
+        // Configuration
+        const NUM_STARS = 500;
+        const CORE_BRIGHTNESS = 100;
+        const MAX_RADIUS = 150;
+        const ROTATION_SPEED = 0.005; // Radians per frame
+        const TWINKLE_SPEED = 0.05;
+
+        let stars = [];
+        let time = 0;
+
+        // Star object structure
+        class Star {
+            constructor(id) {
+                this.id = id;
+                // Initial position based on polar coordinates (r, theta)
+                // r determines distance from core, theta determines angle
+                this.r = Math.random() * MAX_RADIUS * 0.8 + 10; // Distance from core
+                this.theta = Math.random() * Math.PI * 2; // Initial angle
+                
+                // Color properties
+                this.baseHue = Math.random() * 360;
+                this.sat = Math.random() * 40 + 60; // Saturation
+                this.lightness = Math.random() * 20 + 50; // Lightness
+                
+                // Twinkle factor (used for opacity variation)
+                this.twinkleOffset = Math.random() * 1000;
+            }
+
+            update(time) {
+                // Rotation: Increase theta based on time and distance (faster closer to core for visual effect)
+                const rotationFactor = 1 + (1 - this.r / (MAX_RADIUS * 1.2));
+                this.theta += ROTATION_SPEED * rotationFactor;
+
+                // Twinkle: Subtle opacity change based on time
+                const twinkle = Math.sin((time * TWINKLE_SPEED) + this.twinkleOffset) * 0.3 + 0.7; // Range 0.4 to 1.0
+                this.opacity = Math.pow(twinkle, 2); // Squaring makes dimming more pronounced
+            }
+
+            draw(ctx) {
+                // Convert polar coordinates (r, theta) to Cartesian (x, y) relative to the center
+                const x = this.r * Math.cos(this.theta);
+                const y = this.r * Math.sin(this.theta);
+
+                // Calculate color based on base hue and current opacity
+                ctx.fillStyle = `hsla(${this.baseHue}, ${this.sat}%, ${this.lightness}%, ${this.opacity})`;
+                
+                // Draw the star (as a small circle)
+                const size = 1 + (0.5 * this.opacity); // Slightly bigger when brighter
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function initializeGalaxy() {
+            stars = [];
+            for (let i = 0; i < NUM_STARS; i++) {
+                stars.push(new Star(i));
+            }
+        }
+
+        function drawCore(ctx) {
+            // Draw the bright galactic core
+            const centerX = width / 2;
+            const centerY = height / 2;
+            
+            const gradient = ctx.createRadialGradient(
+                centerX, centerY, 0, 
+                centerX, centerY, 50
+            );
+            
+            // Transition from bright white/yellow center to a softer glow
+            gradient.addColorStop(0, 'rgba(255, 255, 200, 1)'); // Brightest center
+            gradient.addColorStop(0.3, 'rgba(255, 180, 0, 0.8)'); // Yellowish glow
+            gradient.addColorStop(1, 'rgba(50, 0, 0, 0)'); // Fades to transparent
+
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 60, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function animate(timestamp) {
+            time = timestamp / 1000; // Time in seconds
+
+            // Resize canvas to fit window
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+
+            // Clear canvas (Black background)
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, width, height);
+
+            const centerX = width / 2;
+            const centerY = height / 2;
+
+            // 1. Draw the core first to be underneath the stars
+            drawCore(ctx);
+
+            // 2. Update and Draw Stars
+            stars.forEach(star => {
+                star.update(time);
+                star.draw(ctx);
+            });
+
+            // Request next frame
+            requestAnimationFrame(animate);
+        }
+
+        // Event listeners and initial setup
+        window.addEventListener('resize', () => {
+            // Re-initialization might be needed if we wanted to perfectly re-center stars, 
+            // but for this simple effect, resizing the canvas context is enough.
+        });
+
+        initializeGalaxy();
+        requestAnimationFrame(animate);
+
+    </script>
+</body>
+</html>

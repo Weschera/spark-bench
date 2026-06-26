@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Solar System Animation</title>
+<style>
+    body {
+        margin: 0;
+        overflow: hidden;
+        background-color: #000;
+    }
+    canvas {
+        display: block;
+    }
+</style>
+</head>
+<body>
+<canvas id="solarSystemCanvas"></canvas>
+
+<script>
+    const canvas = document.getElementById('solarSystemCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let W, H;
+
+    // --- Configuration ---
+    const SUN_RADIUS = 30;
+    const PLANETS_DATA = [
+        // { name, radius, orbitalRadius, orbitalSpeed, color }
+        { name: "Mercury", radius: 5, orbitalRadius: 80, orbitalSpeed: 0.04, color: "#AAAAAA" },
+        { name: "Venus", radius: 8, orbitalRadius: 120, orbitalSpeed: 0.025, color: "#E8A87C" },
+        { name: "Earth", radius: 10, orbitalRadius: 180, orbitalSpeed: 0.02, color: "#4A90E2" },
+        { name: "Mars", radius: 7, orbitalRadius: 240, orbitalSpeed: 0.015, color: "#D0312C" },
+        { name: "Jupiter", radius: 15, orbitalRadius: 320, orbitalSpeed: 0.01, color: "#C08A50" },
+        { name: "Saturn", radius: 12, orbitalRadius: 400, orbitalSpeed: 0.008, color: "#D4AF37" }
+    ];
+
+    // --- Setup ---
+    function resizeCanvas() {
+        W = canvas.width = window.innerWidth;
+        H = canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // --- Starfield Generation ---
+    const stars = [];
+    const STAR_COUNT = 150;
+
+    function generateStars() {
+        for (let i = 0; i < STAR_COUNT; i++) {
+            stars.push({
+                x: Math.random() * W,
+                y: Math.random() * H,
+                radius: Math.random() * 1.5 + 0.5,
+                brightness: Math.random() * 0.8 + 0.2
+            });
+        }
+    }
+
+    function drawStars() {
+        ctx.fillStyle = 'white';
+        stars.forEach(star => {
+            ctx.beginPath();
+            ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+            ctx.fill();
+        });
+    }
+
+    // --- Drawing Functions ---
+
+    function drawSun() {
+        ctx.save();
+        ctx.shadowBlur = 50;
+        ctx.shadowColor = 'yellow';
+        ctx.beginPath();
+        ctx.arc(W / 2, H / 2, SUN_RADIUS, 0, Math.PI * 2);
+        ctx.fillStyle = '#FFD700';
+        ctx.fill();
+        ctx.restore();
+    }
+
+    function drawPlanet(planet, angle) {
+        const centerX = W / 2;
+        const centerY = H / 2;
+
+        // Calculate position based on orbit
+        const x = centerX + planet.orbitalRadius * Math.cos(angle);
+        const y = centerY + planet.orbitalRadius * Math.sin(angle);
+
+        // 1. Draw the planet body
+        ctx.beginPath();
+        ctx.arc(x, y, planet.radius, 0, Math.PI * 2);
+        ctx.fillStyle = planet.color;
+        ctx.fill();
+
+        // 2. Add a subtle glow/highlight
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = planet.color;
+        ctx.beginPath();
+        ctx.arc(x, y, planet.radius * 1.5, 0, Math.PI * 2);
+        ctx.fillStyle = planet.color + '50'; // Semi-transparent fill for glow
+        ctx.fill();
+        ctx.shadowBlur = 0; // Reset shadow for other drawings
+    }
+
+    function drawSystem(time) {
+        const centerX = W / 2;
+        const centerY = H / 2;
+
+        // Clear canvas and draw background elements
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, W, H);
+
+        // Draw stars first (background)
+        drawStars();
+
+        // Draw the Sun (fixed center)
+        drawSun();
+
+        // Draw planets
+        PLANETS_DATA.forEach(planet => {
+            // Calculate angle based on time for smooth, continuous movement
+            // We use time to ensure consistent speed regardless of frame rate fluctuations
+            const angle = (time * planet.orbitalSpeed) % (Math.PI * 2);
+            drawPlanet(planet, angle);
+        });
+    }
+
+    // --- Animation Loop ---
+    let startTime = null;
+
+    function animate(time) {
+        if (!startTime) startTime = time;
+        const elapsed = time - startTime;
+
+        drawSystem(elapsed / 1000); // Pass time in seconds
+
+        requestAnimationFrame(animate);
+    }
+
+    // Initialize and start
+    generateStars();
+    requestAnimationFrame(animate);
+
+</script>
+</body>
+</html>

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Spiral Galaxy</title>
+<style>
+  body,html{margin:0;padding:0;background:#000;overflow:hidden;height:100%;}
+  canvas{display:block;background:#000;}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+(() => {
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  const w = () => canvas.width = window.innerWidth;
+  const h = () => canvas.height = window.innerHeight;
+  w(); h();
+  window.addEventListener('resize',()=>{w();h();});
+
+  const NUM_STARS = 450;
+  const stars = [];
+
+  const cx = w()/2, cy = h()/2;
+  const startTime = performance.now();
+
+  for(let i=0;i<NUM_STARS;i++){
+    const baseRadius = 20 + Math.random()*30;          // initial radius
+    const b = 2 + Math.random()*3;                    // spiral tightness (radius increase per radian)
+    const angleOffset = Math.random()*Math.PI*2;      // starting angle
+    const angularSpeed = 0.001 + Math.random()*0.004; // rad per frame
+    const hueOffset = Math.random()*360;              // base hue
+    const twinkleFreq = 0.5 + Math.random()*1.5;       // twinkle speed
+    const twinklePhase = Math.random()*Math.PI*2;      // twinkle phase
+    stars.push({
+      baseRadius,
+      b,
+      angleOffset,
+      angularSpeed,
+      hueOffset,
+      twinkleFreq,
+      twinklePhase,
+      index:i
+    });
+  }
+
+  function draw(t){
+    const tSec = (t - startTime)/1000; // seconds since start
+    ctx.clearRect(0,0,w(),h());
+
+    for(const s of stars){
+      const angle = s.angleOffset + s.angularSpeed*tSec;
+      const radius = s.baseRadius + s.b*angle; // Archimedean spiral
+
+      const x = cx + radius*Math.cos(angle);
+      const y = cy + radius*Math.sin(angle);
+
+      // twinkle
+      const alpha = 0.3 + 0.7*Math.sin(tSec*s.twinkleFreq + s.twinklePhase);
+      // color hue varies with angle and base offset
+      const hue = (s.hueOffset + angle*30) % 360;
+      ctx.fillStyle = `hsla(${hue},80%,70%,${alpha})`;
+      ctx.beginPath();
+      ctx.arc(x,y,1.5,0,Math.PI*2);
+      ctx.fill();
+    }
+
+    requestAnimationFrame(draw);
+  }
+
+  requestAnimationFrame(draw);
+})();
+</script>
+</body>
+</html>
