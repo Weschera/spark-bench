@@ -13,7 +13,9 @@ Deploy NVIDIA's ModelOpt NVFP4 quantized Qwen3.6-27B with z-lab DFlash speculati
 | Role | Model | Notes |
 |---|---|---|
 | Target (verifier) | `nvidia/Qwen3.6-27B-NVFP4` | Official NVIDIA ModelOpt NVFP4 checkpoint |
-| Drafter (speculator) | `z-lab/Qwen3.6-27B-DFlash` | Lightweight draft model for speculative decoding |
+| Drafter (speculator) | `z-lab/Qwen3.6-27B-DFlash` | 5-layer DFlash drafter model (not MTP) |
+
+> **DFlash ≠ MTP.** The NVFP4 checkpoint includes a built-in MTP head (`mtp_num_hidden_layers: 1`), but this recipe does **not** use it. DFlash is a separate 5-layer drafter (`DFlashDraftModel`) that reads intermediate hidden states from layers [1, 16, 31, 46, 61] of the target model to draft tokens. It's configured via `--speculative-config '{"method":"dflash",...}'`.
 
 ## Container
 
