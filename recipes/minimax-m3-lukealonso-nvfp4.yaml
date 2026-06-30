@@ -1,0 +1,324 @@
+# Recipe: MiniMax-M3-lukealonso-NVFP4
+# Forum-proven MiniMax-M3 NVFP4 checkpoint, TP=4 across 4 DGX Spark nodes.
+# Based on OllieJW's NVIDIA Developer Forums 4x Spark chthonic/B12X vLLM configuration.
+
+recipe_version: "1"
+name: MiniMax-M3-lukealonso-NVFP4
+description: vLLM serving lukealonso/MiniMax-M3-NVFP4 with chthonic+B12X, ModelOpt FP4, NCCL 2.30.7, and no-Ray TP=4 on 4 DGX Sparks
+
+model: lukealonso/MiniMax-M3-NVFP4
+
+container: ghcr.io/tonyd2wild/vllm-m3-chthonic:nccl230u1
+
+cluster_only: true
+
+mods: []
+
+env:
+  VLLM_NCCL_SO_PATH: /opt/nccl230/build/lib/libnccl.so.2
+  LD_PRELOAD: /opt/nccl230/build/lib/libnccl.so.2
+  NCCL_DEBUG: VERSION
+  NCCL_IB_DISABLE: "0"
+  NCCL_NET: ib
+  NCCL_NET_PLUGIN: none
+  NCCL_IB_HCA: rocep1s0f0,roceP2p1s0f0
+  NCCL_IB_GID_INDEX: "3"
+  NCCL_IB_MERGE_NICS: "1"
+  NCCL_IB_QPS_PER_CONNECTION: "8"
+  NCCL_IB_SPLIT_DATA_ON_QPS: "1"
+  NCCL_IB_PCI_RELAXED_ORDERING: "1"
+  NCCL_NET_GDR_LEVEL: LOC
+  NCCL_CUMEM_ENABLE: "0"
+  NCCL_IGNORE_CPU_AFFINITY: "1"
+  NCCL_ASYNC_ERROR_HANDLING: "1"
+  NCCL_SOCKET_IFNAME: enp1s0f0np0
+  GLOO_SOCKET_IFNAME: enp1s0f0np0
+  UCX_NET_DEVICES: enp1s0f0np0
+  VLLM_FLOAT32_MATMUL_PRECISION: high
+
+defaults:
+  port: 8000
+  host: 0.0.0.0
+  tensor_parallel: 4
+  gpu_memory_utilization: 0.84
+  max_model_len: 524288
+  max_num_batched_tokens: 8192
+  max_num_seqs: 5
+
+command: |
+  python3 -m pip install --no-cache-dir --quiet b12x==0.23.0
+  if [ ! -f /opt/nccl230/build/lib/libnccl.so.2 ]; then
+    echo "ERROR: /opt/nccl230/build/lib/libnccl.so.2 is missing" >&2
+    exit 1
+  fi
+  python3 - <<'PY'
+  import glob
+  import os
+  target = "/opt/nccl230/build/lib/libnccl.so.2"
+  patterns = [
+      "/usr/local/lib/python*/dist-packages/nvidia/nccl/lib/libnccl.so.2",
+      "/usr/local/lib/python*/site-packages/nvidia/nccl/lib/libnccl.so.2",
+      "/usr/lib/python*/dist-packages/nvidia/nccl/lib/libnccl.so.2",
+      "/opt/venv/lib/python*/site-packages/nvidia/nccl/lib/libnccl.so.2",
+  ]
+  for pattern in patterns:
+      for path in glob.glob(pattern):
+          try:
+              if os.path.abspath(path) != target:
+                  if os.path.exists(path) or os.path.islink(path):
+                      os.remove(path)
+                  os.symlink(target, path)
+                  print("NCCL symlink", path, "->", target)
+          except Exception as exc:
+              print("WARN: NCCL symlink failed", path, exc)
+  PY
+  python3 - <<'PY'
+  import inspect
+  from pathlib import Path
+  
+  def replace_or_fail(text: str, old: str, new: str, marker: str, label: str) -> str:
+      if old in text:
+          return text.replace(old, new)
+      if marker in text:
+          raise SystemExit("ERROR: B12X_ATTN " + label + " patch marker changed")
+      return text
+  
+  try:
+      from b12x.integration.paged_attention_scratch import (
+          B12XPagedAttentionScratchCaps,
+          B12XPagedAttentionScratchPlan,
+      )
+      supports_copy_runtime_metadata = (
+          "copy_runtime_metadata"
+          in inspect.signature(B12XPagedAttentionScratchCaps).parameters
+      )
+      supports_decode_graph_replay = hasattr(
+          B12XPagedAttentionScratchPlan,
+          "prepare_decode_graph_replay_state",
+      )
+  except Exception as exc:
+      print("WARN: B12X signature probe failed", exc)
+      supports_copy_runtime_metadata = True
+      supports_decode_graph_replay = True
+  
+  if not supports_copy_runtime_metadata or not supports_decode_graph_replay:
+      path = Path(
+          "/opt/venv/lib/python3.12/site-packages/vllm/v1/attention/backends/"
+          "b12x_attn.py"
+      )
+      text = path.read_text()
+      original = text
+  
+      if not supports_copy_runtime_metadata:
+          text = replace_or_fail(
+              text,
+              "                    use_cuda_graph=use_cuda_graph,\n"
+              "                    copy_runtime_metadata=copy_runtime_metadata,\n",
+              "                    use_cuda_graph=use_cuda_graph,\n",
+              "copy_runtime_metadata=copy_runtime_metadata",
+              "copy_runtime_metadata",
+          )
+  
+      if not supports_decode_graph_replay:
+          text = replace_or_fail(
+              text,
+              "    _cudagraph_support: ClassVar[AttentionCGSupport] = (\n"
+              "        AttentionCGSupport.UNIFORM_SINGLE_TOKEN_DECODE\n"
+              "    )",
+              "    _cudagraph_support: ClassVar[AttentionCGSupport] = "
+              "AttentionCGSupport.NEVER",
+              "AttentionCGSupport.UNIFORM_SINGLE_TOKEN_DECODE",
+              "cudagraph support",
+          )
+          text = replace_or_fail(
+              text,
+              '''            plan = _make_plan(
+                  "decode",
+                  batch_size,
+                  batch_size,
+                  decode_work_items_capacity,
+                  decode_partial_rows_capacity,
+                  True,
+                  max_page_table_width,
+                  True,
+              )
+              plan.prepare_decode_graph_replay_state(
+                  batch=batch_size,
+                  total_q_capacity=batch_size,
+                  max_page_table_width=max_page_table_width,
+                  max_cache_page_count=max_page_table_width,
+                  window_left=self.window_left,
+              )
+              if plan.plan.split_kv:
+                  raise RuntimeError("B12X_ATTN decode plans must not use split-kv.")
+  ''',
+              '''            plan = _make_plan(
+                  "decode",
+                  batch_size,
+                  batch_size,
+                  decode_work_items_capacity,
+                  decode_partial_rows_capacity,
+                  False,
+                  max_page_table_width,
+                  True,
+              )
+              if hasattr(plan, "prepare_decode_graph_replay_state"):
+                  plan.prepare_decode_graph_replay_state(
+                      batch=batch_size,
+                      total_q_capacity=batch_size,
+                      max_page_table_width=max_page_table_width,
+                      max_cache_page_count=max_page_table_width,
+                      window_left=self.window_left,
+                  )
+                  if getattr(getattr(plan, "plan", None), "split_kv", False):
+                      raise RuntimeError("B12X_ATTN decode plans must not use split-kv.")
+  ''',
+              "prepare_decode_graph_replay_state",
+              "decode graph replay",
+          )
+          text = replace_or_fail(
+              text,
+              '''        self._scratch_nbytes = max(
+              max(int(plan.layout.nbytes) for plan in self._decode_plans.values()),
+              int(self._extend_plan.layout.nbytes),
+          )
+  ''',
+              '''        def _plan_scratch_nbytes(plan: Any) -> int:
+              layout = getattr(plan, "layout", None)
+              if layout is not None and hasattr(layout, "nbytes"):
+                  return int(layout.nbytes)
+              total = 0
+              for spec in plan.scratch_specs():
+                  count = 1
+                  for dim in spec.shape:
+                      count *= int(dim)
+                  total += count * torch.empty((), dtype=spec.dtype).element_size()
+              return total
+  
+          self._scratch_nbytes = max(
+              max(_plan_scratch_nbytes(plan) for plan in self._decode_plans.values()),
+              _plan_scratch_nbytes(self._extend_plan),
+          )
+  ''',
+              "plan.layout.nbytes",
+              "scratch size",
+          )
+  
+      if text != original:
+          path.write_text(text)
+          print("Patched B12X_ATTN for installed b12x scratch-plan API")
+      else:
+          print("B12X_ATTN compatibility patch already applied")
+  PY
+  python3 - <<'PY'
+  import inspect
+  from pathlib import Path
+
+  path = Path(
+      "/opt/venv/lib/python3.12/site-packages/vllm/model_executor/layers/"
+      "fused_moe/b12x_moe.py"
+  )
+  text = path.read_text()
+  original = text
+
+  def replace_or_warn(old, new, label):
+      global text
+      if old in text:
+          text = text.replace(old, new, 1)
+          print("Patched B12X MoE", label)
+          return
+      if new in text:
+          print("B12X MoE", label, "patch already applied")
+          return
+      print("WARN: B12X MoE", label, "patch marker not found")
+
+  try:
+      from b12x.integration import tp_moe
+      supported_activations = tuple(tp_moe._ACTIVATION_KERNEL_SPECS.keys())
+  except Exception as exc:
+      print("WARN: B12X MoE activation probe failed", exc)
+      supported_activations = ("swigluoai_uninterleave",)
+
+  if "swigluoai_uninterleave" not in supported_activations:
+      old_activation = '''    if activation == MoEActivation.SWIGLUOAI_UNINTERLEAVE:
+          return activation.value
+  '''
+      new_activation = '''    if activation == MoEActivation.SWIGLUOAI_UNINTERLEAVE:
+          return "silu"
+  '''
+      replace_or_warn(old_activation, new_activation, "activation-name fallback to silu")
+
+  try:
+      from b12x.integration.tp_moe import TPMoEScratchCaps
+      caps_params = inspect.signature(TPMoEScratchCaps).parameters
+  except Exception as exc:
+      print("WARN: B12X MoE scratch caps probe failed", exc)
+      caps_params = ("swiglu_alpha", "swiglu_beta")
+
+  if "swiglu_alpha" not in caps_params or "swiglu_beta" not in caps_params:
+      old_caps = '''            swiglu_limit=swiglu_limit,
+              swiglu_alpha=swiglu_alpha,
+              swiglu_beta=swiglu_beta,
+              source_format=source_format,
+  '''
+      new_caps = '''            swiglu_limit=swiglu_limit,
+              source_format=source_format,
+  '''
+      replace_or_warn(old_caps, new_caps, "scratch caps alpha-beta fallback")
+
+  try:
+      from b12x.integration.tp_moe import TPMoEScratchPlan
+      bind_params = inspect.signature(TPMoEScratchPlan.bind).parameters
+  except Exception as exc:
+      print("WARN: B12X MoE bind probe failed", exc)
+      bind_params = ("swiglu_alpha", "swiglu_beta")
+
+  if "swiglu_alpha" not in bind_params or "swiglu_beta" not in bind_params:
+      old_bind = '''        prepared_w4a16=prepared_w4a16,
+          swiglu_limit=swiglu_limit,
+          swiglu_alpha=swiglu_alpha,
+          swiglu_beta=swiglu_beta,
+      )
+      b12x_moe_fp4(binding=binding)
+  '''
+      new_bind = '''        prepared_w4a16=prepared_w4a16,
+          swiglu_limit=swiglu_limit,
+      )
+      b12x_moe_fp4(binding=binding)
+  '''
+      replace_or_warn(old_bind, new_bind, "bind alpha-beta fallback")
+
+  if text != original:
+      path.write_text(text)
+      print("Patched B12X MoE for installed b12x activation/bind API")
+  else:
+      print("B12X MoE compatibility patch already applied")
+  PY
+  echo "FORCED_NCCL_VERSION 23007"
+  vllm serve lukealonso/MiniMax-M3-NVFP4 \
+    --served-model-name minimax-m3 \
+    --tensor-parallel-size {tensor_parallel} \
+    --host {host} \
+    --port {port} \
+    --trust-remote-code \
+    --dtype auto \
+    --quantization modelopt_fp4 \
+    --attention-backend B12X_ATTN \
+    --moe-backend b12x \
+    -cc.mode=VLLM_COMPILE \
+    -cc.cudagraph_mode=FULL \
+    --load-format safetensors \
+    --kv-cache-dtype auto \
+    --max-model-len {max_model_len} \
+    --max-num-batched-tokens {max_num_batched_tokens} \
+    --max-num-seqs {max_num_seqs} \
+    --gpu-memory-utilization {gpu_memory_utilization} \
+    --enable-chunked-prefill \
+    --enable-prefix-caching \
+    --skip-mm-profiling \
+    --mm-encoder-tp-mode data \
+    --block-size 128 \
+    --generation-config vllm \
+    --reasoning-parser minimax_m3 \
+    --tool-call-parser minimax_m3 \
+    --enable-auto-tool-choice
