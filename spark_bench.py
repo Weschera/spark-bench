@@ -289,13 +289,16 @@ def _make_prompt(approx_tokens):
     return FILLER * reps
 
 
-def run_tier2(ctx, args):
-    ctx.mdln(f"# Tier 2 — Inference ({ctx.run_id})\n")
+def run_tier2(ctx, args, *, title=None, heading_level=1):
+    h1 = "#" * heading_level
+    h2 = "#" * min(heading_level + 1, 6)
+    title = title or f"Tier 2 — Inference ({ctx.run_id})"
+    ctx.mdln(f"{h1} {title}\n")
     ctx.mdln(f"- model `{ctx.model}` @ `{ctx.endpoint}`  topology `{ctx.topology}` "
              f"parallelism `{ctx.parallelism}` spec_decode `{ctx.spec_decode}`\n")
 
     # ---- single-stream decode (short prompt, long generation) ----
-    ctx.mdln("## Single-stream decode\n")
+    ctx.mdln(f"{h2} Single-stream decode\n")
     ctx.mdln("| context | TTFT (ms) | decode tok/s | TPOT (ms) | prefill tok/s | out toks |")
     ctx.mdln("|--------:|----------:|-------------:|----------:|--------------:|---------:|")
     contexts = [int(c) for c in args.contexts.split(",") if c.strip()]
@@ -329,7 +332,7 @@ def run_tier2(ctx, args):
     # ---- throughput under concurrency ----
     concs = [int(c) for c in args.concurrency.split(",") if c.strip()]
     if concs:
-        ctx.mdln("## Throughput under concurrency\n")
+        ctx.mdln(f"{h2} Throughput under concurrency\n")
         ctx.mdln("| batch | agg decode tok/s | per-stream tok/s | TTFT p50 (ms) | "
                  "TTFT p99 (ms) | completed |")
         ctx.mdln("|------:|-----------------:|-----------------:|--------------:|"
@@ -340,6 +343,8 @@ def run_tier2(ctx, args):
             agg = _concurrency_run(ctx.endpoint, ctx.model, cprompt, args.gen_tokens,
                                    n, args.timeout)
             if not agg["ok"]:
+                ctx.add("tier2", "concurrency", "error", "no completed requests", "",
+                        batch=n)
                 ctx.mdln(f"| {n} | ERR | - | - | - | 0 |")
                 continue
             ctx.add("tier2", "concurrency", "agg_decode_tps", round(agg["agg_tps"], 1),
@@ -537,6 +542,9 @@ def run_eval(ctx, args):
         ctx.add("eval", "overall", k, round(ov[k], 1), "score0-100",
                 notes=f"thinking={args.thinking}")
     ctx.add("eval", "overall", "median_latency", round(ov["median_latency_s"], 2), "s")
+    total_toks = sum(s.get("output_tokens", 0) for s in res["scenarios"])
+    ctx.add("eval", "overall", "total_output_tokens", total_toks, "tok",
+            notes=f"{ov.get('n_scenarios','?')} scenarios")
     for d in res["domains"]:
         ctx.add("eval", d["domain"], "domain_quality", round(d["quality"], 1),
                 "score0-100", notes=f"{d['group']} n={d['n']}")
@@ -545,6 +553,8 @@ def run_eval(ctx, args):
     for s in res["scenarios"]:
         ctx.add("eval", s["id"], "score", round(s["score"], 3), "frac",
                 notes=f"{s['domain']}:{s['reason'][:48]}")
+        ctx.add("eval", s["id"], "output_tokens", s.get("output_tokens", 0), "tok",
+                notes=s["domain"])
 
     # ---- markdown ---- #
     def score_text(k):
@@ -619,6 +629,24 @@ def run_eval(ctx, args):
               f"ScoreStdDev={ts.get('score_stddev','?')} "
               f"ScenStdDev={ts.get('mean_scenario_stddev','?')} ---")
 
+    if args.skip_throughput:
+        ctx.mdln("## Serving Throughput Sweep\n")
+        ctx.mdln("Skipped by `--skip-throughput`.\n")
+        return
+
+    ctx.mdln("## Serving Throughput Sweep\n")
+    ctx.mdln("Automatic v5c add-on: single-stream decode at multiple prompt contexts "
+             "plus aggregate throughput under concurrent requests. These rows are "
+             "stored as `tier2` metrics under the same run id as the deep eval.\n")
+    sweep_args = argparse.Namespace(
+        contexts=args.throughput_contexts,
+        concurrency=args.throughput_concurrency,
+        conc_context=args.throughput_conc_context,
+        gen_tokens=args.throughput_gen_tokens,
+        timeout=args.timeout,
+    )
+    run_tier2(ctx, sweep_args, title="Serving throughput detail", heading_level=3)
+
 
 # --------------------------------------------------------------------------- #
 # helpers / CLI
@@ -684,6 +712,16 @@ def main():
                     help="comma filter e.g. tool_use,coding,safety,visual")
     se.add_argument("--weights", default="",
                     help="override composite weights e.g. quality=0.5,responsiveness=0.1")
+    se.add_argument("--skip-throughput", action="store_true",
+                    help="skip the automatic v5c serving throughput sweep")
+    se.add_argument("--throughput-contexts", default="1024,8192,32768",
+                    help="prompt contexts for automatic eval throughput sweep")
+    se.add_argument("--throughput-concurrency", default="1,2,4,8",
+                    help="concurrency levels for automatic eval throughput sweep")
+    se.add_argument("--throughput-conc-context", type=int, default=1024,
+                    help="prompt context used for automatic concurrency sweep")
+    se.add_argument("--throughput-gen-tokens", type=int, default=512,
+                    help="requested output tokens for automatic throughput sweep")
 
     s1 = sub.add_parser("tier1"); common(s1, infer=False)
     s1.add_argument("--peer-ssh", required=True, help="ssh host for remote ib server")

@@ -65,7 +65,11 @@ Building in public means admitting mistakes and correcting them:
 
 5. **Token tracking** — output tokens per scenario and total per run added as non-scoring side stat.
 
+6. **Serving throughput side sweep** — every full v5c `eval` now also records single-stream decode tok/s at 1K/8K/32K context and aggregate decode tok/s at concurrency 1/2/4/8. These are non-scoring side stats stored as `tier2` rows under the same run id.
+
 ## Serving Methods
+
+**Forward vLLM policy:** new vLLM-backed benchmark recipes should start from the newest validated stable vLLM available at setup time (v0.24.0 as of 2026-07-01), unless a model-specific recipe requires a pinned fork or container. Record the exact image, wheel, tag, or commit in the recipe notes. Existing leaderboard runs are not rerun for engine-only upgrades; they stay historical unless the model or serving recipe is intentionally rebenchmarked.
 
 | Model | Serving | Hardware |
 |-------|---------|----------|
@@ -137,6 +141,8 @@ python3 spark_bench.py eval \
   --thinking off --repeats 2 --temperature 0.3 --tier all \
   --notes "clean run, single Spark"
 ```
+
+Full v5c eval runs automatically append the serving throughput sweep using `--throughput-contexts 1024,8192,32768`, `--throughput-concurrency 1,2,4,8`, and `--throughput-gen-tokens 512`. Use `--skip-throughput` only for quick/debug runs that should not be comparable.
 
 ## Hardware
 
