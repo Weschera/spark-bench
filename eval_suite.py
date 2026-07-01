@@ -386,18 +386,24 @@ def expect_code(fname, cases, forbid_imports=None):
                     return (0.0, f"used forbidden import {imp}")
         try:
             ns = {}
-            exec(code, ns)  # noqa: S102 - sandboxed-ish eval of model code
+            def _load_code():
+                exec(code, ns)  # noqa: S102 - sandboxed-ish eval of model code
+            _run_with_timeout(_load_code, 5)
             fn = ns.get(fname)
             if not callable(fn):
                 return (0.0, f"{fname} not callable")
+        except _EvalTimeout:
+            return (0.0, "exec timeout")
         except Exception as e:
             return (0.0, f"exec error: {type(e).__name__}")
         passed = 0
         for args, expected in cases:
             try:
-                got = fn(*args)
+                got = _run_with_timeout(lambda: fn(*args), 5)
                 if got == expected:
                     passed += 1
+            except _EvalTimeout:
+                pass
             except Exception:
                 pass
         return (passed / len(cases), f"{passed}/{len(cases)} cases")
@@ -505,6 +511,30 @@ def _extract_python_code(resp):
     return code
 
 
+class _EvalTimeout(Exception):
+    pass
+
+
+def _run_with_timeout(fn, timeout=5):
+    """Run fn with a wall-clock timeout; used around untrusted model code."""
+    if not timeout or timeout <= 0:
+        return fn()
+
+    import signal
+
+    def _handle_timeout(signum, frame):
+        raise _EvalTimeout(f"timed out after {timeout}s")
+
+    old_handler = signal.getsignal(signal.SIGALRM)
+    old_timer = signal.setitimer(signal.ITIMER_REAL, timeout)
+    signal.signal(signal.SIGALRM, _handle_timeout)
+    try:
+        return fn()
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, *old_timer)
+        signal.signal(signal.SIGALRM, old_handler)
+
+
 def _run_python_safely(code, setup_code="", test_code="", timeout=5):
     """Execute Python code in an isolated namespace. Returns (success, output, error)."""
     import tempfile, traceback, os
@@ -518,10 +548,15 @@ def _run_python_safely(code, setup_code="", test_code="", timeout=5):
             f.flush()
             fname = f.name
         try:
-            with open(fname) as f:
-                exec(compile(f.read(), fname, 'exec'), ns)
+            def _exec_file():
+                with open(fname) as f:
+                    exec(compile(f.read(), fname, 'exec'), ns)
+            _run_with_timeout(_exec_file, timeout)
             os.unlink(fname)
             return (True, ns, None)
+        except _EvalTimeout:
+            os.unlink(fname)
+            return (False, None, f"timeout after {timeout}s")
         except Exception as e:
             os.unlink(fname)
             return (False, None, f"{type(e).__name__}: {e}")
@@ -561,7 +596,10 @@ def expect_executable_code(setup="", tests=None, test_fn=None, extract_fn=None):
 
         # Run tests
         if test_fn:
-            return test_fn(ns)
+            try:
+                return _run_with_timeout(lambda: test_fn(ns), 5)
+            except _EvalTimeout:
+                return (0.0, "test timeout")
 
         if not tests:
             return (1.0, "executed successfully")
@@ -573,13 +611,17 @@ def expect_executable_code(setup="", tests=None, test_fn=None, extract_fn=None):
         for i, (test_code, check_fn) in enumerate(tests):
             try:
                 local_ns = dict(ns) if ns else {}
-                exec(test_code, local_ns)
+                def _exec_test():
+                    exec(test_code, local_ns)
+                _run_with_timeout(_exec_test, 5)
                 result = local_ns.get("__result__", None)
                 if check_fn(result):
                     passed += 1
                     reasons.append(f"test{i+1}:pass")
                 else:
                     reasons.append(f"test{i+1}:fail(got {repr(result)[:50]})")
+            except _EvalTimeout:
+                reasons.append(f"test{i+1}:timeout")
             except Exception as e:
                 reasons.append(f"test{i+1}:error({e})")
 
@@ -835,10 +877,24 @@ T_CALENDAR = {"type": "function", "function": {
     "name": "create_event", "description": "Create a calendar event.",
     "parameters": {"type": "object", "properties": {
         "title": {"type": "string"},
-        "start": {"type": "string", "description": "ISO datetime"},
-        "end": {"type": "string", "description": "ISO datetime"},
+        "day": {"type": "string", "description": "Day of the event, e.g. 'monday', 'next_friday', 'tomorrow'"},
+        "start": {"type": "string", "description": "Start time, e.g. '14:00'"},
+        "duration": {"type": "integer", "description": "Duration in minutes"},
         "attendees": {"type": "array", "items": {"type": "string"}}},
-        "required": ["title", "start"]}}}
+        "required": ["title", "day", "start"]}}}
+
+T_CAL_READ = {"type": "function", "function": {
+    "name": "check_calendar", "description": "List all events on a given day.",
+    "parameters": {"type": "object", "properties": {
+        "day": {"type": "string", "description": "Day to check, e.g. 'monday', 'next_friday', 'tomorrow', 'thursday'"}},
+        "required": ["day"]}}}
+
+T_CAL_CANCEL = {"type": "function", "function": {
+    "name": "cancel_event", "description": "Cancel (delete) a calendar event by title and day.",
+    "parameters": {"type": "object", "properties": {
+        "title": {"type": "string", "description": "Title (or partial title) of the event to cancel"},
+        "day": {"type": "string", "description": "Day the event is on"}},
+        "required": ["title"]}}}
 
 T_FILE_READ = {"type": "function", "function": {
     "name": "read_file", "description": "Read a file from disk.",
@@ -1357,7 +1413,7 @@ SCENARIOS = [
     # ---- tool_use (capability) -------------------------------------------- #
     dict(id="AG-01", domain="agentic", group="capability", tier="hard", difficulty=3.5,
          max_tokens=800, agentic=True,
-         tools=[T_WEATHER, T_CALENDAR, T_EMAIL],
+         tools=[T_WEATHER, T_CAL_READ, T_CALENDAR, T_EMAIL],
          messages=_msg("You are a logistics coordinator. I need you to plan a multi-city "
                        "business trip for next week. Here are the requirements:\n"
                        "1. Check the weather forecast for New York, London, and Tokyo.\n"
@@ -1370,7 +1426,7 @@ SCENARIOS = [
          grade=None),
     dict(id="AG-02", domain="agentic", group="capability", tier="hard", difficulty=3.6,
          max_tokens=800, agentic=True,
-         tools=[T_CALENDAR, T_EMAIL],
+         tools=[T_CAL_READ, T_CALENDAR, T_EMAIL],
          messages=_msg("You are managing a product launch. Here's the situation:\n"
                        "We're launching 'Phoenix v2' next Friday. I need you to coordinate:\n"
                        "1. Check my calendar for next Friday — is there a 1-hour slot free for a launch meeting? If not, find the next available slot.\n"
@@ -1384,7 +1440,7 @@ SCENARIOS = [
     # TU-03 removed (too easy — every model scored 1.0, trivial weather call)
     dict(id="AG-03", domain="agentic", group="capability", tier="hard", difficulty=3.8,
          max_tokens=1000, agentic=True,
-         tools=[T_WEATHER, T_CALENDAR, T_EMAIL],
+         tools=[T_WEATHER, T_CAL_READ, T_CALENDAR, T_CAL_CANCEL, T_EMAIL],
          messages=_msg("You're an operations agent. I need you to resolve a scheduling conflict:\n"
                        "1. Check weather in Boston for tomorrow — if it's raining, we need to move our outdoor event indoors.\n"
                        "2. Check my calendar for tomorrow — find the 2pm slot.\n"
@@ -1403,7 +1459,7 @@ SCENARIOS = [
          grade=expect_text_equals("PONG", allow_extra=True)),
     dict(id="AG-04", domain="agentic", group="capability", tier="hard", difficulty=3.7,
          max_tokens=1000, agentic=True,
-         tools=[T_CALENDAR, T_EMAIL],
+         tools=[T_CAL_READ, T_CALENDAR, T_EMAIL],
          messages=_msg("You're a project manager handling a delayed release. Do the following IN ORDER:\n"
                        "1. Check my calendar for this week — find all free 1-hour slots.\n"
                        "2. Create a 'Release Postmortem' meeting in the FIRST free slot you found.\n"
@@ -1424,7 +1480,7 @@ SCENARIOS = [
          grade=forbid_char("e")),
     dict(id="AG-05", domain="agentic", group="capability", tier="hard", difficulty=3.9,
          max_tokens=1000, agentic=True,
-         tools=[T_WEATHER, T_CALENDAR, T_EMAIL],
+         tools=[T_WEATHER, T_CAL_READ, T_CALENDAR, T_EMAIL],
          messages=_msg("You're coordinating an executive offsite. Complete ALL steps:\n"
                        "1. Check weather in San Francisco, Seattle, and Austin for this weekend.\n"
                        "2. Based on weather, recommend which city is best for an outdoor offsite. State your reasoning.\n"
@@ -1440,7 +1496,7 @@ SCENARIOS = [
     # ---- structured output (capability) ----------------------------------- #
     dict(id="AG-06", domain="agentic", group="capability", tier="hard", difficulty=4.0,
          max_tokens=1200, agentic=True,
-         tools=[T_WEATHER, T_CALENDAR, T_EMAIL],
+         tools=[T_WEATHER, T_CAL_READ, T_CALENDAR, T_EMAIL],
          messages=_msg("You are a crisis response coordinator. A severe weather alert was just issued. Execute the full response plan:\n"
                        "1. Check weather in Denver — we have an office there. Get current conditions.\n"
                        "2. Check weather in Boulder — we have a data center there.\n"
@@ -2656,7 +2712,7 @@ def _run_agentic(sc, chat_fn, extra_base, temperature, timeout):
         total_latency += resp.get("total", 0.0)
         text = resp.get("text", "") or ""
         total_text.append(text)
-        tool_calls = resp.get("tool_calls", [])
+        tool_calls = assemble_tool_calls(resp) if resp.get("tool_calls") else []
 
         if not tool_calls:
             # Model stopped calling tools — either done or gave up
@@ -2669,10 +2725,11 @@ def _run_agentic(sc, chat_fn, extra_base, temperature, timeout):
         # Process each tool call and add results as user messages with continuation cue
         for tc in tool_calls:
             func = tc.get("function", {}) or tc
-            tname = func.get("name", "")
+            tname = func.get("name") or tc.get("name") or ""
             try:
                 import json as _json
-                targs = _json.loads(func.get("arguments", "{}")) if isinstance(func.get("arguments"), str) else (func.get("arguments") or {})
+                raw_args = func.get("arguments", tc.get("args", {}))
+                targs = _json.loads(raw_args) if isinstance(raw_args, str) else (raw_args or {})
             except Exception:
                 targs = {}
             result = _sim_tool(tname, targs, env)
@@ -2860,7 +2917,10 @@ def run_suite(chat_fn, *, repeats=2, temperature=0.3, domains=None, tiers=None,
     weights = dict(DEFAULT_WEIGHTS, **(weights or {}))
     extra_base = {}
     if thinking in ("on", "off"):
-        extra_base["chat_template_kwargs"] = {"enable_thinking": thinking == "on"}
+        extra_base["chat_template_kwargs"] = {
+            "enable_thinking": thinking == "on",
+            "thinking_mode": "enabled" if thinking == "on" else "disabled",
+        }
         # OpenRouter reasoning support — works alongside chat_template_kwargs
         if thinking == "on":
             extra_base["reasoning"] = {"effort": "high"}

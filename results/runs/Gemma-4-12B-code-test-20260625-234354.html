@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>spark-bench report: Gemma-4-12B-code-test-20260625-234354</title>
+<style>
+:root { color-scheme: dark; --bg:#101113; --panel:#191b1f; --panel2:#20242b; --text:#f4f1e8; --muted:#aeb4bc; --line:rgba(255,255,255,.11); --green:#35d07f; --cyan:#5dc8ff; --amber:#f5b84b; --red:#ff6b6b; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--text); font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+.wrap { max-width:1180px; margin:0 auto; padding:26px 20px 44px; }
+header { display:grid; grid-template-columns:1.1fr .9fr; gap:16px; align-items:stretch; margin-bottom:16px; }
+.hero,.panel,.card { background:var(--panel); border:1px solid var(--line); border-radius:8px; box-shadow:0 18px 60px rgba(0,0,0,.25); }
+.hero { padding:22px; }
+h1 { margin:6px 0 10px; font-size:clamp(26px,5vw,46px); line-height:1; letter-spacing:0; overflow-wrap:anywhere; }
+h2 { margin:0 0 14px; font-size:18px; letter-spacing:0; }
+h3 { margin:18px 0 8px; font-size:15px; }
+.muted,.meta,.card span,.barrow span { color:var(--muted); }
+.meta { display:grid; gap:5px; font-size:13px; }
+.cards { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.card { padding:14px; min-height:74px; }
+.card span { display:block; font-size:12px; text-transform:uppercase; letter-spacing:.08em; }
+.card strong { display:block; margin-top:7px; font-size:25px; line-height:1.1; overflow-wrap:anywhere; }
+.grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.panel { padding:18px; margin-bottom:16px; overflow:hidden; }
+.barrow { display:grid; grid-template-columns:minmax(190px,1fr) 64px; gap:10px; align-items:center; padding:9px 0; border-bottom:1px solid rgba(255,255,255,.07); }
+.barrow:last-child { border-bottom:0; }
+.barrow strong { display:block; overflow-wrap:anywhere; }
+.barrow span { display:block; font-size:12px; overflow-wrap:anywhere; }
+.barrow b { text-align:right; font-variant-numeric:tabular-nums; }
+.bar { grid-column:1 / -1; height:10px; background:rgba(255,255,255,.09); border-radius:999px; overflow:hidden; }
+.bar i { display:block; height:100%; width:0; background:linear-gradient(90deg,var(--cyan),var(--green)); border-radius:999px; animation:grow .9s cubic-bezier(.2,.8,.2,1) forwards; }
+.bar.warn i { background:linear-gradient(90deg,var(--red),var(--amber)); }
+@keyframes grow { from { width:0; } }
+table { width:100%; border-collapse:collapse; background:var(--panel2); border:1px solid var(--line); border-radius:8px; overflow:hidden; margin:10px 0 18px; }
+th,td { padding:8px 9px; border-bottom:1px solid rgba(255,255,255,.08); text-align:left; font-size:13px; vertical-align:top; }
+th { color:var(--muted); text-transform:uppercase; letter-spacing:.05em; font-size:11px; }
+tr:last-child td { border-bottom:0; }
+code { background:#262a31; padding:1px 4px; border-radius:4px; }
+pre { white-space:pre-wrap; background:#0c0d10; border:1px solid var(--line); border-radius:8px; padding:14px; overflow:auto; }
+a { color:#8bd9ff; }
+details summary { cursor:pointer; color:#8bd9ff; margin:8px 0; }
+@media (max-width:900px) { header,.grid { grid-template-columns:1fr; } .cards { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media (max-width:560px) { .cards { grid-template-columns:1fr; } .wrap { padding:16px 12px 32px; } }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header>
+    <section class="hero">
+      <div class="muted">spark-bench HTML report</div>
+      <h1>Gemma-4-12B-code-test-20260625-234354</h1>
+      <div class="meta">
+        <div><strong>label:</strong> Gemma-4-12B-code-test</div>
+        <div><strong>model:</strong> gemma-4-12b-it-Q4_K_M.gguf</div>
+        <div><strong>endpoint:</strong> http://localhost:8001/v1</div>
+        <div><strong>notes:</strong> n/a</div>
+      </div>
+    </section>
+    <section class="cards"><div class="card"><span>TrueScore</span><strong>95.9</strong></div><div class="card"><span>Capability</span><strong>100</strong></div><div class="card"><span>Operational</span><strong>84.5</strong></div><div class="card"><span>Median latency</span><strong>5.23s</strong></div><div class="card"><span>Run kind</span><strong>benchmark</strong></div><div class="card"><span>Rows</span><strong>20</strong></div><div class="card"><span>Topology</span><strong>unknown</strong></div><div class="card"><span>Parallelism</span><strong>1</strong></div><div class="card"><span>Spec decode</span><strong>na</strong></div></section>
+  </header>
+  <section class="grid">
+    <section class="panel"><h2>Score Components / Key Metrics</h2><div class="barrow"><div><strong>Capability Score</strong><span></span></div><b>100</b><div class="bar"><i style="width:100.0%"></i></div></div><div class="barrow"><div><strong>Operational Score</strong><span></span></div><b>84.5</b><div class="bar"><i style="width:84.5%"></i></div></div><div class="barrow"><div><strong>quality</strong><span></span></div><b>100</b><div class="bar"><i style="width:100.0%"></i></div></div><div class="barrow"><div><strong>reliability</strong><span></span></div><b>100</b><div class="bar"><i style="width:100.0%"></i></div></div><div class="barrow"><div><strong>efficiency</strong><span></span></div><b>100</b><div class="bar"><i style="width:100.0%"></i></div></div><div class="barrow"><div><strong>responsiveness</strong><span></span></div><b>79.3</b><div class="bar"><i style="width:79.3%"></i></div></div></section>
+    <section class="panel"><h2>Domain Breakdown</h2><div class="barrow"><div><strong>code</strong><span>capability n=10</span></div><b>100</b><div class="bar"><i style="width:100.0%"></i></div></div></section>
+  </section>
+  <section class="panel"><h2>Per-Scenario Results</h2><div class="barrow"><div><strong>CODE-01</strong><span>code:all tests passed</span></div><b>100</b><div class="bar"><i style="width:100.0%"></i></div></div><div class="barrow"><div><strong>CODE-02</strong><span>code:3/3 checks passed: returns 5 rows:pass, top cust</span></div><b>100</b><div class="bar"><i style="width:100.0%"></i></div></div><div class="barrow"><div><strong>CODE-03</strong><span>code:all tests passed</span></div><b>100</b><div class="bar"><i style="width:100.0%"></i></div></div><div class="barrow"><div><strong>CODE-04</strong><span>code:all tests passed</span></div><b>100</b><div class="bar"><i style="width:100.0%"></i></div></div><div class="barrow"><div><strong>CODE-05</strong><span>code:all tests passed</span></div><b>100</b><div class="bar"><i style="width:100.0%"></i></div></div><div class="barrow"><div><strong>CODE-06</strong><span>code:4/4 tests: t1:pass, t2:pass, t3:pass, t4:pass</span></div><b>100</b><div class="bar"><i style="width:100.0%"></i></div></div><div class="barrow"><div><strong>CODE-07</strong><span>code:all tests passed</span></div><b>100</b><div class="bar"><i style="width:100.0%"></i></div></div><div class="barrow"><div><strong>CODE-08</strong><span>code:3/3 checks passed: returns 6 rows:pass, has wind</span></div><b>100</b><div class="bar"><i style="width:100.0%"></i></div></div><div class="barrow"><div><strong>CODE-09</strong><span>code:3/3 tests: t1:pass, t2:pass, t3:pass</span></div><b>100</b><div class="bar"><i style="width:100.0%"></i></div></div><div class="barrow"><div><strong>CODE-10</strong><span>code:4/4 tests: t1:pass, t2:pass, t3:pass, t4:pass</span></div><b>100</b><div class="bar"><i style="width:100.0%"></i></div></div></section>
+  <section class="panel"><h2>Rendered Summary</h2><h1>Deep Eval (Gemma-4-12B-code-test-20260625-234354)</h1>
+<ul>
+<li>model <code>gemma-4-12b-it-Q4_K_M.gguf</code> @ <code>http://localhost:8001/v1</code>  thinking <code>off</code> repeats <code>2</code> temp <code>0.3</code></li>
+</ul>
+<h2>TrueScore 95.9/100  —  ⭐⭐⭐⭐⭐ Excellent (grade A)</h2>
+<table><thead><tr><th>headline score</th><th>value</th><th>meaning</th></tr></thead><tbody>
+<tr><td>Capability Score</td><td>100.0</td><td>quality/correctness without speed penalty</td></tr>
+<tr><td>Operational Score</td><td>84.5</td><td>efficiency + latency/responsiveness</td></tr>
+<tr><td><strong>TrueScore</strong></td><td><strong>95.9</strong></td><td>combined deployment score</td></tr>
+</tbody></table>
+<p>
+| component | score | TrueScore weight |</p>
+<p>|-----------|------:|-----------------:|</p>
+<p>| quality | 100.0 | 53% |</p>
+<p>| calibration | n/a | — |</p>
+<p>| reliability | 100.0 | 20% |</p>
+<p>| efficiency | 100.0 | 7% |</p>
+<p>| responsiveness | 79.3 | 20% |</p>
+<p>
+Median turn latency 5.23s · 10 scenarios · thinking off
+</p>
+<h2>Trial Statistics</h2>
+<table><thead><tr><th>metric</th><th>value</th><th>meaning</th></tr></thead><tbody>
+<tr><td>Pass@1</td><td>100.0%</td><td>scenarios passing (≥50%) on at least 1 repeat</td></tr>
+<tr><td>Pass@K</td><td>100.0%</td><td>scenarios passing on ALL repeats</td></tr>
+<tr><td>Reliability Gap</td><td>0.0%</td><td>Pass@1 − Pass@K (flakiness cost)</td></tr>
+<tr><td>Score StdDev</td><td>0.0</td><td>cross-scenario score spread</td></tr>
+<tr><td>Scenario StdDev</td><td>0.0</td><td>mean per-scenario repeat variance</td></tr>
+</tbody></table>
+<h2>Domain breakdown</h2>
+<table><thead><tr><th>domain</th><th>group</th><th>n</th><th>quality</th><th>reliability</th></tr></thead><tbody>
+<tr><td>code</td><td>capability</td><td>10</td><td>100.0</td><td>100.0</td></tr>
+</tbody></table>
+<p>
+## Per-scenario
+</p>
+<table><thead><tr><th>id</th><th>domain</th><th>tier</th><th>score</th><th>cons</th><th>latency</th><th>reason</th></tr></thead><tbody>
+<tr><td>CODE-01</td><td>code</td><td>base</td><td>1.00</td><td>1.00</td><td>5.1s</td><td>all tests passed</td></tr>
+<tr><td>CODE-02</td><td>code</td><td>base</td><td>1.00</td><td>1.00</td><td>2.6s</td><td>3/3 checks passed: returns 5 rows:pass, top customer is Caro</td></tr>
+<tr><td>CODE-03</td><td>code</td><td>base</td><td>1.00</td><td>1.00</td><td>6.6s</td><td>all tests passed</td></tr>
+<tr><td>CODE-04</td><td>code</td><td>base</td><td>1.00</td><td>1.00</td><td>6.5s</td><td>all tests passed</td></tr>
+<tr><td>CODE-05</td><td>code</td><td>base</td><td>1.00</td><td>1.00</td><td>4.1s</td><td>all tests passed</td></tr>
+<tr><td>CODE-06</td><td>code</td><td>hard</td><td>1.00</td><td>1.00</td><td>15.5s</td><td>4/4 tests: t1:pass, t2:pass, t3:pass, t4:pass</td></tr>
+<tr><td>CODE-07</td><td>code</td><td>hard</td><td>1.00</td><td>1.00</td><td>4.0s</td><td>all tests passed</td></tr>
+<tr><td>CODE-08</td><td>code</td><td>hard</td><td>1.00</td><td>1.00</td><td>2.7s</td><td>3/3 checks passed: returns 6 rows:pass, has window function</td></tr>
+<tr><td>CODE-09</td><td>code</td><td>hard</td><td>1.00</td><td>1.00</td><td>5.4s</td><td>3/3 tests: t1:pass, t2:pass, t3:pass</td></tr>
+<tr><td>CODE-10</td><td>code</td><td>hard</td><td>1.00</td><td>1.00</td><td>10.8s</td><td>4/4 tests: t1:pass, t2:pass, t3:pass, t4:pass</td></tr>
+</tbody></table></section>
+  <section class="panel"><h2>All Recorded Rows</h2><table><thead><tr><th>tier</th><th>workload</th><th>metric</th><th>value</th><th>unit</th><th>context</th><th>batch</th><th>notes</th></tr></thead><tbody><tr><td>eval</td><td>overall</td><td>truescore</td><td>95.9</td><td>score0-100</td><td></td><td></td><td>thinking=off</td></tr><tr><td>eval</td><td>overall</td><td>capability_score</td><td>100.0</td><td>score0-100</td><td></td><td></td><td>thinking=off</td></tr><tr><td>eval</td><td>overall</td><td>operational_score</td><td>84.5</td><td>score0-100</td><td></td><td></td><td>thinking=off</td></tr><tr><td>eval</td><td>overall</td><td>quality</td><td>100.0</td><td>score0-100</td><td></td><td></td><td>thinking=off</td></tr><tr><td>eval</td><td>overall</td><td>reliability</td><td>100.0</td><td>score0-100</td><td></td><td></td><td>thinking=off</td></tr><tr><td>eval</td><td>overall</td><td>efficiency</td><td>100.0</td><td>score0-100</td><td></td><td></td><td>thinking=off</td></tr><tr><td>eval</td><td>overall</td><td>responsiveness</td><td>79.3</td><td>score0-100</td><td></td><td></td><td>thinking=off</td></tr><tr><td>eval</td><td>overall</td><td>median_latency</td><td>5.23</td><td>s</td><td></td><td></td><td></td></tr><tr><td>eval</td><td>code</td><td>domain_quality</td><td>100.0</td><td>score0-100</td><td></td><td></td><td>capability n=10</td></tr><tr><td>eval</td><td>code</td><td>domain_reliability</td><td>100.0</td><td>score0-100</td><td></td><td></td><td>capability</td></tr><tr><td>eval</td><td>CODE-01</td><td>score</td><td>1.0</td><td>frac</td><td></td><td></td><td>code:all tests passed</td></tr><tr><td>eval</td><td>CODE-02</td><td>score</td><td>1.0</td><td>frac</td><td></td><td></td><td>code:3/3 checks passed: returns 5 rows:pass, top cust</td></tr><tr><td>eval</td><td>CODE-03</td><td>score</td><td>1.0</td><td>frac</td><td></td><td></td><td>code:all tests passed</td></tr><tr><td>eval</td><td>CODE-04</td><td>score</td><td>1.0</td><td>frac</td><td></td><td></td><td>code:all tests passed</td></tr><tr><td>eval</td><td>CODE-05</td><td>score</td><td>1.0</td><td>frac</td><td></td><td></td><td>code:all tests passed</td></tr><tr><td>eval</td><td>CODE-06</td><td>score</td><td>1.0</td><td>frac</td><td></td><td></td><td>code:4/4 tests: t1:pass, t2:pass, t3:pass, t4:pass</td></tr><tr><td>eval</td><td>CODE-07</td><td>score</td><td>1.0</td><td>frac</td><td></td><td></td><td>code:all tests passed</td></tr><tr><td>eval</td><td>CODE-08</td><td>score</td><td>1.0</td><td>frac</td><td></td><td></td><td>code:3/3 checks passed: returns 6 rows:pass, has wind</td></tr><tr><td>eval</td><td>CODE-09</td><td>score</td><td>1.0</td><td>frac</td><td></td><td></td><td>code:3/3 tests: t1:pass, t2:pass, t3:pass</td></tr><tr><td>eval</td><td>CODE-10</td><td>score</td><td>1.0</td><td>frac</td><td></td><td></td><td>code:4/4 tests: t1:pass, t2:pass, t3:pass, t4:pass</td></tr></tbody></table></section>
+  <section class="panel">
+    <h2>Raw Artifacts</h2>
+    <details><summary>Raw markdown summary</summary><pre># Deep Eval (Gemma-4-12B-code-test-20260625-234354)
+
+- model `gemma-4-12b-it-Q4_K_M.gguf` @ `http://localhost:8001/v1`  thinking `off` repeats `2` temp `0.3`
+
+## TrueScore 95.9/100  —  ⭐⭐⭐⭐⭐ Excellent (grade A)
+
+| headline score | value | meaning |
+|----------------|------:|---------|
+| Capability Score | 100.0 | quality/correctness without speed penalty |
+| Operational Score | 84.5 | efficiency + latency/responsiveness |
+| **TrueScore** | **95.9** | combined deployment score |
+
+| component | score | TrueScore weight |
+|-----------|------:|-----------------:|
+| quality | 100.0 | 53% |
+| calibration | n/a | — |
+| reliability | 100.0 | 20% |
+| efficiency | 100.0 | 7% |
+| responsiveness | 79.3 | 20% |
+
+Median turn latency 5.23s · 10 scenarios · thinking off
+
+## Trial Statistics
+
+| metric | value | meaning |
+|--------|------:|---------|
+| Pass@1 | 100.0% | scenarios passing (≥50%) on at least 1 repeat |
+| Pass@K | 100.0% | scenarios passing on ALL repeats |
+| Reliability Gap | 0.0% | Pass@1 − Pass@K (flakiness cost) |
+| Score StdDev | 0.0 | cross-scenario score spread |
+| Scenario StdDev | 0.0 | mean per-scenario repeat variance |
+
+## Domain breakdown
+
+| domain | group | n | quality | reliability |
+|--------|-------|--:|--------:|------------:|
+| code | capability | 10 | 100.0 | 100.0 |
+
+## Per-scenario
+
+| id | domain | tier | score | cons | latency | reason |
+|----|--------|------|------:|-----:|--------:|--------|
+| CODE-01 | code | base | 1.00 | 1.00 | 5.1s | all tests passed |
+| CODE-02 | code | base | 1.00 | 1.00 | 2.6s | 3/3 checks passed: returns 5 rows:pass, top customer is Caro |
+| CODE-03 | code | base | 1.00 | 1.00 | 6.6s | all tests passed |
+| CODE-04 | code | base | 1.00 | 1.00 | 6.5s | all tests passed |
+| CODE-05 | code | base | 1.00 | 1.00 | 4.1s | all tests passed |
+| CODE-06 | code | hard | 1.00 | 1.00 | 15.5s | 4/4 tests: t1:pass, t2:pass, t3:pass, t4:pass |
+| CODE-07 | code | hard | 1.00 | 1.00 | 4.0s | all tests passed |
+| CODE-08 | code | hard | 1.00 | 1.00 | 2.7s | 3/3 checks passed: returns 6 rows:pass, has window function  |
+| CODE-09 | code | hard | 1.00 | 1.00 | 5.4s | 3/3 tests: t1:pass, t2:pass, t3:pass |
+| CODE-10 | code | hard | 1.00 | 1.00 | 10.8s | 4/4 tests: t1:pass, t2:pass, t3:pass, t4:pass |
+</pre></details>
+    <details><summary>Raw JSON rows</summary><pre>{
+  &quot;run_id&quot;: &quot;Gemma-4-12B-code-test-20260625-234354&quot;,
+  &quot;rows&quot;: [
+    {
+      &quot;run_id&quot;: &quot;Gemma-4-12B-code-test-20260625-234354&quot;,
+      &quot;timestamp&quot;: &quot;2026-06-25T23:46:01&quot;,
+      &quot;tier&quot;: &quot;eval&quot;,
+      &quot;model&quot;: &quot;gemma-4-12b-it-Q4_K_M.gguf&quot;,
+      &quot;label&quot;: &quot;Gemma-4-12B-code-test&quot;,
+      &quot;endpoint&quot;: &quot;http://localhost:8001/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;1&quot;,
+      &quot;context&quot;: &quot;&quot;,
+      &quot;batch&quot;: &quot;&quot;,
+      &quot;spec_decode&quot;: &quot;na&quot;,
+      &quot;workload&quot;: &quot;overall&quot;,
+      &quot;metric&quot;: &quot;truescore&quot;,
+      &quot;value&quot;: 95.9,
+      &quot;unit&quot;: &quot;score0-100&quot;,
+      &quot;notes&quot;: &quot;thinking=off&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;Gemma-4-12B-code-test-20260625-234354&quot;,
+      &quot;timestamp&quot;: &quot;2026-06-25T23:46:01&quot;,
+      &quot;tier&quot;: &quot;eval&quot;,
+      &quot;model&quot;: &quot;gemma-4-12b-it-Q4_K_M.gguf&quot;,
+      &quot;label&quot;: &quot;Gemma-4-12B-code-test&quot;,
+      &quot;endpoint&quot;: &quot;http://localhost:8001/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;1&quot;,
+      &quot;context&quot;: &quot;&quot;,
+      &quot;batch&quot;: &quot;&quot;,
+      &quot;spec_decode&quot;: &quot;na&quot;,
+      &quot;workload&quot;: &quot;overall&quot;,
+      &quot;metric&quot;: &quot;capability_score&quot;,
+      &quot;value&quot;: 100.0,
+      &quot;unit&quot;: &quot;score0-100&quot;,
+      &quot;notes&quot;: &quot;thinking=off&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;Gemma-4-12B-code-test-20260625-234354&quot;,
+      &quot;timestamp&quot;: &quot;2026-06-25T23:46:01&quot;,
+      &quot;tier&quot;: &quot;eval&quot;,
+      &quot;model&quot;: &quot;gemma-4-12b-it-Q4_K_M.gguf&quot;,
+      &quot;label&quot;: &quot;Gemma-4-12B-code-test&quot;,
+      &quot;endpoint&quot;: &quot;http://localhost:8001/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;1&quot;,
+      &quot;context&quot;: &quot;&quot;,
+      &quot;batch&quot;: &quot;&quot;,
+      &quot;spec_decode&quot;: &quot;na&quot;,
+      &quot;workload&quot;: &quot;overall&quot;,
+      &quot;metric&quot;: &quot;operational_score&quot;,
+      &quot;value&quot;: 84.5,
+      &quot;unit&quot;: &quot;score0-100&quot;,
+      &quot;notes&quot;: &quot;thinking=off&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;Gemma-4-12B-code-test-20260625-234354&quot;,
+      &quot;timestamp&quot;: &quot;2026-06-25T23:46:01&quot;,
+      &quot;tier&quot;: &quot;eval&quot;,
+      &quot;model&quot;: &quot;gemma-4-12b-it-Q4_K_M.gguf&quot;,
+      &quot;label&quot;: &quot;Gemma-4-12B-code-test&quot;,
+      &quot;endpoint&quot;: &quot;http://localhost:8001/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;1&quot;,
+      &quot;context&quot;: &quot;&quot;,
+      &quot;batch&quot;: &quot;&quot;,
+      &quot;spec_decode&quot;: &quot;na&quot;,
+      &quot;workload&quot;: &quot;overall&quot;,
+      &quot;metric&quot;: &quot;quality&quot;,
+      &quot;value&quot;: 100.0,
+      &quot;unit&quot;: &quot;score0-100&quot;,
+      &quot;notes&quot;: &quot;thinking=off&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;Gemma-4-12B-code-test-20260625-234354&quot;,
+      &quot;timestamp&quot;: &quot;2026-06-25T23:46:01&quot;,
+      &quot;tier&quot;: &quot;eval&quot;,
+      &quot;model&quot;: &quot;gemma-4-12b-it-Q4_K_M.gguf&quot;,
+      &quot;label&quot;: &quot;Gemma-4-12B-code-test&quot;,
+      &quot;endpoint&quot;: &quot;http://localhost:8001/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;1&quot;,
+      &quot;context&quot;: &quot;&quot;,
+      &quot;batch&quot;: &quot;&quot;,
+      &quot;spec_decode&quot;: &quot;na&quot;,
+      &quot;workload&quot;: &quot;overall&quot;,
+      &quot;metric&quot;: &quot;reliability&quot;,
+      &quot;value&quot;: 100.0,
+      &quot;unit&quot;: &quot;score0-100&quot;,
+      &quot;notes&quot;: &quot;thinking=off&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;Gemma-4-12B-code-test-20260625-234354&quot;,
+      &quot;timestamp&quot;: &quot;2026-06-25T23:46:01&quot;,
+      &quot;tier&quot;: &quot;eval&quot;,
+      &quot;model&quot;: &quot;gemma-4-12b-it-Q4_K_M.gguf&quot;,
+      &quot;label&quot;: &quot;Gemma-4-12B-code-test&quot;,
+      &quot;endpoint&quot;: &quot;http://localhost:8001/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;1&quot;,
+      &quot;context&quot;: &quot;&quot;,
+      &quot;batch&quot;: &quot;&quot;,
+      &quot;spec_decode&quot;: &quot;na&quot;,
+      &quot;workload&quot;: &quot;overall&quot;,
+      &quot;metric&quot;: &quot;efficiency&quot;,
+      &quot;value&quot;: 100.0,
+      &quot;unit&quot;: &quot;score0-100&quot;,
+      &quot;notes&quot;: &quot;thinking=off&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;Gemma-4-12B-code-test-20260625-234354&quot;,
+      &quot;timestamp&quot;: &quot;2026-06-25T23:46:01&quot;,
+      &quot;tier&quot;: &quot;eval&quot;,
+      &quot;model&quot;: &quot;gemma-4-12b-it-Q4_K_M.gguf&quot;,
+      &quot;label&quot;: &quot;Gemma-4-12B-code-test&quot;,
+      &quot;endpoint&quot;: &quot;http://localhost:8001/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;1&quot;,
+      &quot;context&quot;: &quot;&quot;,
+      &quot;batch&quot;: &quot;&quot;,
+      &quot;spec_decode&quot;: &quot;na&quot;,
+      &quot;workload&quot;: &quot;overall&quot;,
+      &quot;metric&quot;: &quot;responsiveness&quot;,
+      &quot;value&quot;: 79.3,
+      &quot;unit&quot;: &quot;score0-100&quot;,
+      &quot;notes&quot;: &quot;thinking=off&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;Gemma-4-12B-code-test-20260625-234354&quot;,
+      &quot;timestamp&quot;: &quot;2026-06-25T23:46:01&quot;,
+      &quot;tier&quot;: &quot;eval&quot;,
+      &quot;model&quot;: &quot;gemma-4-12b-it-Q4_K_M.gguf&quot;,
+      &quot;label&quot;: &quot;Gemma-4-12B-code-test&quot;,
+      &quot;endpoint&quot;: &quot;http://localhost:8001/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;1&quot;,
+      &quot;context&quot;: &quot;&quot;,
+      &quot;batch&quot;: &quot;&quot;,
+      &quot;spec_decode&quot;: &quot;na&quot;,
+      &quot;workload&quot;: &quot;overall&quot;,
+      &quot;metric&quot;: &quot;median_latency&quot;,
+      &quot;value&quot;: 5.23,
+      &quot;unit&quot;: &quot;s&quot;,
+      &quot;notes&quot;: &quot;&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;Gemma-4-12B-code-test-20260625-234354&quot;,
+      &quot;timestamp&quot;: &quot;2026-06-25T23:46:01&quot;,
+      &quot;tier&quot;: &quot;eval&quot;,
+      &quot;model&quot;: &quot;gemma-4-12b-it-Q4_K_M.gguf&quot;,
+      &quot;label&quot;: &quot;Gemma-4-12B-code-test&quot;,
+      &quot;endpoint&quot;: &quot;http://localhost:8001/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;1&quot;,
+      &quot;context&quot;: &quot;&quot;,
+      &quot;batch&quot;: &quot;&quot;,
+      &quot;spec_decode&quot;: &quot;na&quot;,
+      &quot;workload&quot;: &quot;code&quot;,
+      &quot;metric&quot;: &quot;domain_quality&quot;,
+      &quot;value&quot;: 100.0,
+      &quot;unit&quot;: &quot;score0-100&quot;,
+      &quot;notes&quot;: &quot;capability n=10&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;Gemma-4-12B-code-test-20260625-234354&quot;,
+      &quot;timestamp&quot;: &quot;2026-06-25T23:46:01&quot;,
+      &quot;tier&quot;: &quot;eval&quot;,
+      &quot;model&quot;: &quot;gemma-4-12b-it-Q4_K_M.gguf&quot;,
+      &quot;label&quot;: &quot;Gemma-4-12B-code-test&quot;,
+      &quot;endpoint&quot;: &quot;http://localhost:8001/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;1&quot;,
+      &quot;context&quot;: &quot;&quot;,
+      &quot;batch&quot;: &quot;&quot;,
+      &quot;spec_decode&quot;: &quot;na&quot;,
+      &quot;workload&quot;: &quot;code&quot;,
+      &quot;metric&quot;: &quot;domain_reliability&quot;,
+      &quot;value&quot;: 100.0,
+      &quot;unit&quot;: &quot;score0-100&quot;,
+      &quot;notes&quot;: &quot;capability&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;Gemma-4-12B-code-test-20260625-234354&quot;,
+      &quot;timestamp&quot;: &quot;2026-06-25T23:46:01&quot;,
+      &quot;tier&quot;: &quot;eval&quot;,
+      &quot;model&quot;: &quot;gemma-4-12b-it-Q4_K_M.gguf&quot;,
+      &quot;label&quot;: &quot;Gemma-4-12B-code-test&quot;,
+      &quot;endpoint&quot;: &quot;http://localhost:8001/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;1&quot;,
+      &quot;context&quot;: &quot;&quot;,
+      &quot;batch&quot;: &quot;&quot;,
+      &quot;spec_decode&quot;: &quot;na&quot;,
+      &quot;workload&quot;: &quot;CODE-01&quot;,
+      &quot;metric&quot;: &quot;score&quot;,
+      &quot;value&quot;: 1.0,
+      &quot;unit&quot;: &quot;frac&quot;,
+      &quot;notes&quot;: &quot;code:all tests passed&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;Gemma-4-12B-code-test-20260625-234354&quot;,
+      &quot;timestamp&quot;: &quot;2026-06-25T23:46:01&quot;,
+      &quot;tier&quot;: &quot;eval&quot;,
+      &quot;model&quot;: &quot;gemma-4-12b-it-Q4_K_M.gguf&quot;,
+      &quot;label&quot;: &quot;Gemma-4-12B-code-test&quot;,
+      &quot;endpoint&quot;: &quot;http://localhost:8001/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;1&quot;,
+      &quot;context&quot;: &quot;&quot;,
+      &quot;batch&quot;: &quot;&quot;,
+      &quot;spec_decode&quot;: &quot;na&quot;,
+      &quot;workload&quot;: &quot;CODE-02&quot;,
+      &quot;metric&quot;: &quot;score&quot;,
+      &quot;value&quot;: 1.0,
+      &quot;unit&quot;: &quot;frac&quot;,
+      &quot;notes&quot;: &quot;code:3/3 checks passed: returns 5 rows:pass, top cust&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;Gemma-4-12B-code-test-20260625-234354&quot;,
+      &quot;timestamp&quot;: &quot;2026-06-25T23:46:01&quot;,
+      &quot;tier&quot;: &quot;eval&quot;,
+      &quot;model&quot;: &quot;gemma-4-12b-it-Q4_K_M.gguf&quot;,
+      &quot;label&quot;: &quot;Gemma-4-12B-code-test&quot;,
+      &quot;endpoint&quot;: &quot;http://localhost:8001/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;1&quot;,
+      &quot;context&quot;: &quot;&quot;,
+      &quot;batch&quot;: &quot;&quot;,
+      &quot;spec_decode&quot;: &quot;na&quot;,
+      &quot;workload&quot;: &quot;CODE-03&quot;,
+      &quot;metric&quot;: &quot;score&quot;,
+      &quot;value&quot;: 1.0,
+      &quot;unit&quot;: &quot;frac&quot;,
+      &quot;notes&quot;: &quot;code:all tests passed&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;Gemma-4-12B-code-test-20260625-234354&quot;,
+      &quot;timestamp&quot;: &quot;2026-06-25T23:46:01&quot;,
+      &quot;tier&quot;: &quot;eval&quot;,
+      &quot;model&quot;: &quot;gemma-4-12b-it-Q4_K_M.gguf&quot;,
+      &quot;label&quot;: &quot;Gemma-4-12B-code-test&quot;,
+      &quot;endpoint&quot;: &quot;http://localhost:8001/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;1&quot;,
+      &quot;context&quot;: &quot;&quot;,
+      &quot;batch&quot;: &quot;&quot;,
+      &quot;spec_decode&quot;: &quot;na&quot;,
+      &quot;workload&quot;: &quot;CODE-04&quot;,
+      &quot;metric&quot;: &quot;score&quot;,
+      &quot;value&quot;: 1.0,
+      &quot;unit&quot;: &quot;frac&quot;,
+      &quot;notes&quot;: &quot;code:all tests passed&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;Gemma-4-12B-code-test-20260625-234354&quot;,
+      &quot;timestamp&quot;: &quot;2026-06-25T23:46:01&quot;,
+      &quot;tier&quot;: &quot;eval&quot;,
+      &quot;model&quot;: &quot;gemma-4-12b-it-Q4_K_M.gguf&quot;,
+      &quot;label&quot;: &quot;Gemma-4-12B-code-test&quot;,
+      &quot;endpoint&quot;: &quot;http://localhost:8001/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;1&quot;,
+      &quot;context&quot;: &quot;&quot;,
+      &quot;batch&quot;: &quot;&quot;,
+      &quot;spec_decode&quot;: &quot;na&quot;,
+      &quot;workload&quot;: &quot;CODE-05&quot;,
+      &quot;metric&quot;: &quot;score&quot;,
+      &quot;value&quot;: 1.0,
+      &quot;unit&quot;: &quot;frac&quot;,
+      &quot;notes&quot;: &quot;code:all tests passed&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;Gemma-4-12B-code-test-20260625-234354&quot;,
+      &quot;timestamp&quot;: &quot;2026-06-25T23:46:01&quot;,
+      &quot;tier&quot;: &quot;eval&quot;,
+      &quot;model&quot;: &quot;gemma-4-12b-it-Q4_K_M.gguf&quot;,
+      &quot;label&quot;: &quot;Gemma-4-12B-code-test&quot;,
+      &quot;endpoint&quot;: &quot;http://localhost:8001/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;1&quot;,
+      &quot;context&quot;: &quot;&quot;,
+      &quot;batch&quot;: &quot;&quot;,
+      &quot;spec_decode&quot;: &quot;na&quot;,
+      &quot;workload&quot;: &quot;CODE-06&quot;,
+      &quot;metric&quot;: &quot;score&quot;,
+      &quot;value&quot;: 1.0,
+      &quot;unit&quot;: &quot;frac&quot;,
+      &quot;notes&quot;: &quot;code:4/4 tests: t1:pass, t2:pass, t3:pass, t4:pass&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;Gemma-4-12B-code-test-20260625-234354&quot;,
+      &quot;timestamp&quot;: &quot;2026-06-25T23:46:01&quot;,
+      &quot;tier&quot;: &quot;eval&quot;,
+      &quot;model&quot;: &quot;gemma-4-12b-it-Q4_K_M.gguf&quot;,
+      &quot;label&quot;: &quot;Gemma-4-12B-code-test&quot;,
+      &quot;endpoint&quot;: &quot;http://localhost:8001/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;1&quot;,
+      &quot;context&quot;: &quot;&quot;,
+      &quot;batch&quot;: &quot;&quot;,
+      &quot;spec_decode&quot;: &quot;na&quot;,
+      &quot;workload&quot;: &quot;CODE-07&quot;,
+      &quot;metric&quot;: &quot;score&quot;,
+      &quot;value&quot;: 1.0,
+      &quot;unit&quot;: &quot;frac&quot;,
+      &quot;notes&quot;: &quot;code:all tests passed&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;Gemma-4-12B-code-test-20260625-234354&quot;,
+      &quot;timestamp&quot;: &quot;2026-06-25T23:46:01&quot;,
+      &quot;tier&quot;: &quot;eval&quot;,
+      &quot;model&quot;: &quot;gemma-4-12b-it-Q4_K_M.gguf&quot;,
+      &quot;label&quot;: &quot;Gemma-4-12B-code-test&quot;,
+      &quot;endpoint&quot;: &quot;http://localhost:8001/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;1&quot;,
+      &quot;context&quot;: &quot;&quot;,
+      &quot;batch&quot;: &quot;&quot;,
+      &quot;spec_decode&quot;: &quot;na&quot;,
+      &quot;workload&quot;: &quot;CODE-08&quot;,
+      &quot;metric&quot;: &quot;score&quot;,
+      &quot;value&quot;: 1.0,
+      &quot;unit&quot;: &quot;frac&quot;,
+      &quot;notes&quot;: &quot;code:3/3 checks passed: returns 6 rows:pass, has wind&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;Gemma-4-12B-code-test-20260625-234354&quot;,
+      &quot;timestamp&quot;: &quot;2026-06-25T23:46:01&quot;,
+      &quot;tier&quot;: &quot;eval&quot;,
+      &quot;model&quot;: &quot;gemma-4-12b-it-Q4_K_M.gguf&quot;,
+      &quot;label&quot;: &quot;Gemma-4-12B-code-test&quot;,
+      &quot;endpoint&quot;: &quot;http://localhost:8001/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;1&quot;,
+      &quot;context&quot;: &quot;&quot;,
+      &quot;batch&quot;: &quot;&quot;,
+      &quot;spec_decode&quot;: &quot;na&quot;,
+      &quot;workload&quot;: &quot;CODE-09&quot;,
+      &quot;metric&quot;: &quot;score&quot;,
+      &quot;value&quot;: 1.0,
+      &quot;unit&quot;: &quot;frac&quot;,
+      &quot;notes&quot;: &quot;code:3/3 tests: t1:pass, t2:pass, t3:pass&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;Gemma-4-12B-code-test-20260625-234354&quot;,
+      &quot;timestamp&quot;: &quot;2026-06-25T23:46:01&quot;,
+      &quot;tier&quot;: &quot;eval&quot;,
+      &quot;model&quot;: &quot;gemma-4-12b-it-Q4_K_M.gguf&quot;,
+      &quot;label&quot;: &quot;Gemma-4-12B-code-test&quot;,
+      &quot;endpoint&quot;: &quot;http://localhost:8001/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;1&quot;,
+      &quot;context&quot;: &quot;&quot;,
+      &quot;batch&quot;: &quot;&quot;,
+      &quot;spec_decode&quot;: &quot;na&quot;,
+      &quot;workload&quot;: &quot;CODE-10&quot;,
+      &quot;metric&quot;: &quot;score&quot;,
+      &quot;value&quot;: 1.0,
+      &quot;unit&quot;: &quot;frac&quot;,
+      &quot;notes&quot;: &quot;code:4/4 tests: t1:pass, t2:pass, t3:pass, t4:pass&quot;
+    }
+  ]
+}</pre></details>
+  </section>
+</main>
+</body>
+</html>

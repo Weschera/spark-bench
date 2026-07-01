@@ -1,0 +1,674 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>spark-bench report: DeepSeek-V4-Flash-throughput-2Spark-20260701-20260701-000411</title>
+<style>
+:root { color-scheme: dark; --bg:#101113; --panel:#191b1f; --panel2:#20242b; --text:#f4f1e8; --muted:#aeb4bc; --line:rgba(255,255,255,.11); --green:#35d07f; --cyan:#5dc8ff; --amber:#f5b84b; --red:#ff6b6b; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--text); font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+.wrap { max-width:1180px; margin:0 auto; padding:26px 20px 44px; }
+header { display:grid; grid-template-columns:1.1fr .9fr; gap:16px; align-items:stretch; margin-bottom:16px; }
+.hero,.panel,.card { background:var(--panel); border:1px solid var(--line); border-radius:8px; box-shadow:0 18px 60px rgba(0,0,0,.25); }
+.hero { padding:22px; }
+h1 { margin:6px 0 10px; font-size:clamp(26px,5vw,46px); line-height:1; letter-spacing:0; overflow-wrap:anywhere; }
+h2 { margin:0 0 14px; font-size:18px; letter-spacing:0; }
+h3 { margin:18px 0 8px; font-size:15px; }
+.muted,.meta,.card span,.barrow span { color:var(--muted); }
+.meta { display:grid; gap:5px; font-size:13px; }
+.cards { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.card { padding:14px; min-height:74px; }
+.card span { display:block; font-size:12px; text-transform:uppercase; letter-spacing:.08em; }
+.card strong { display:block; margin-top:7px; font-size:25px; line-height:1.1; overflow-wrap:anywhere; }
+.grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.panel { padding:18px; margin-bottom:16px; overflow:hidden; }
+.barrow { display:grid; grid-template-columns:minmax(190px,1fr) 64px; gap:10px; align-items:center; padding:9px 0; border-bottom:1px solid rgba(255,255,255,.07); }
+.barrow:last-child { border-bottom:0; }
+.barrow strong { display:block; overflow-wrap:anywhere; }
+.barrow span { display:block; font-size:12px; overflow-wrap:anywhere; }
+.barrow b { text-align:right; font-variant-numeric:tabular-nums; }
+.bar { grid-column:1 / -1; height:10px; background:rgba(255,255,255,.09); border-radius:999px; overflow:hidden; }
+.bar i { display:block; height:100%; width:0; background:linear-gradient(90deg,var(--cyan),var(--green)); border-radius:999px; animation:grow .9s cubic-bezier(.2,.8,.2,1) forwards; }
+.bar.warn i { background:linear-gradient(90deg,var(--red),var(--amber)); }
+@keyframes grow { from { width:0; } }
+table { width:100%; border-collapse:collapse; background:var(--panel2); border:1px solid var(--line); border-radius:8px; overflow:hidden; margin:10px 0 18px; }
+th,td { padding:8px 9px; border-bottom:1px solid rgba(255,255,255,.08); text-align:left; font-size:13px; vertical-align:top; }
+th { color:var(--muted); text-transform:uppercase; letter-spacing:.05em; font-size:11px; }
+tr:last-child td { border-bottom:0; }
+code { background:#262a31; padding:1px 4px; border-radius:4px; }
+pre { white-space:pre-wrap; background:#0c0d10; border:1px solid var(--line); border-radius:8px; padding:14px; overflow:auto; }
+a { color:#8bd9ff; }
+details summary { cursor:pointer; color:#8bd9ff; margin:8px 0; }
+@media (max-width:900px) { header,.grid { grid-template-columns:1fr; } .cards { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media (max-width:560px) { .cards { grid-template-columns:1fr; } .wrap { padding:16px 12px 32px; } }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header>
+    <section class="hero">
+      <div class="muted">spark-bench HTML report</div>
+      <h1>DeepSeek-V4-Flash-throughput-2Spark-20260701-20260701-000411</h1>
+      <div class="meta">
+        <div><strong>label:</strong> DeepSeek-V4-Flash-throughput-2Spark-20260701</div>
+        <div><strong>model:</strong> deepseek-v4-flash</div>
+        <div><strong>endpoint:</strong> http://10.10.10.1:8000/v1</div>
+        <div><strong>notes:</strong> Standardized throughput/concurrency sweep for 2-node DeepSeek V4 Flash run; prompt contexts 1K/8K/32K, concurrency 1/2/4/8 at 1K context, 512 max generated tokens. Master address corrected from stale 192.168.2.2 to 10.10.10.1 before launch.</div>
+      </div>
+    </section>
+    <section class="cards"><div class="card"><span>Run kind</span><strong>benchmark</strong></div><div class="card"><span>Rows</span><strong>31</strong></div><div class="card"><span>Topology</span><strong>unknown</strong></div><div class="card"><span>Parallelism</span><strong>2</strong></div><div class="card"><span>Spec decode</span><strong>mtp2</strong></div></section>
+  </header>
+  <section class="grid">
+    <section class="panel"><h2>Score Components / Key Metrics</h2><div class="barrow"><div><strong>single_stream / ttft_ms</strong><span>ms </span></div><b>1123</b><div class="bar"><i style="width:100.0%"></i></div></div><div class="barrow"><div><strong>single_stream / decode_tps</strong><span>tok/s </span></div><b>38.4</b><div class="bar"><i style="width:38.4%"></i></div></div><div class="barrow"><div><strong>single_stream / tpot_ms</strong><span>ms </span></div><b>26.1</b><div class="bar"><i style="width:26.1%"></i></div></div><div class="barrow"><div><strong>single_stream / prefill_tps</strong><span>tok/s prompt=1008tok</span></div><b>898</b><div class="bar"><i style="width:100.0%"></i></div></div><div class="barrow"><div><strong>single_stream / output_tokens</strong><span>tok </span></div><b>512</b><div class="bar"><i style="width:100.0%"></i></div></div><div class="barrow"><div><strong>single_stream / ttft_ms</strong><span>ms </span></div><b>4021</b><div class="bar"><i style="width:100.0%"></i></div></div><div class="barrow"><div><strong>single_stream / decode_tps</strong><span>tok/s </span></div><b>38.5</b><div class="bar"><i style="width:38.5%"></i></div></div><div class="barrow"><div><strong>single_stream / tpot_ms</strong><span>ms </span></div><b>26.0</b><div class="bar"><i style="width:26.0%"></i></div></div><div class="barrow"><div><strong>single_stream / prefill_tps</strong><span>tok/s prompt=7997tok</span></div><b>1989</b><div class="bar"><i style="width:100.0%"></i></div></div><div class="barrow"><div><strong>single_stream / output_tokens</strong><span>tok </span></div><b>512</b><div class="bar"><i style="width:100.0%"></i></div></div><div class="barrow"><div><strong>single_stream / ttft_ms</strong><span>ms </span></div><b>13219</b><div class="bar"><i style="width:100.0%"></i></div></div><div class="barrow"><div><strong>single_stream / decode_tps</strong><span>tok/s </span></div><b>38.1</b><div class="bar"><i style="width:38.1%"></i></div></div><div class="barrow"><div><strong>single_stream / tpot_ms</strong><span>ms </span></div><b>26.3</b><div class="bar"><i style="width:26.3%"></i></div></div><div class="barrow"><div><strong>single_stream / prefill_tps</strong><span>tok/s prompt=31951tok</span></div><b>2417</b><div class="bar"><i style="width:100.0%"></i></div></div><div class="barrow"><div><strong>single_stream / output_tokens</strong><span>tok </span></div><b>512</b><div class="bar"><i style="width:100.0%"></i></div></div><div class="barrow"><div><strong>concurrency / agg_decode_tps</strong><span>tok/s </span></div><b>37.8</b><div class="bar"><i style="width:37.8%"></i></div></div><div class="barrow"><div><strong>concurrency / per_stream_tps</strong><span>tok/s </span></div><b>39.5</b><div class="bar"><i style="width:39.5%"></i></div></div><div class="barrow"><div><strong>concurrency / ttft_p50_ms</strong><span>ms </span></div><b>508</b><div class="bar"><i style="width:100.0%"></i></div></div><div class="barrow"><div><strong>concurrency / ttft_p99_ms</strong><span>ms </span></div><b>508</b><div class="bar"><i style="width:100.0%"></i></div></div><div class="barrow"><div><strong>concurrency / agg_decode_tps</strong><span>tok/s </span></div><b>55.3</b><div class="bar"><i style="width:55.3%"></i></div></div><div class="barrow"><div><strong>concurrency / per_stream_tps</strong><span>tok/s </span></div><b>33.0</b><div class="bar"><i style="width:33.0%"></i></div></div><div class="barrow"><div><strong>concurrency / ttft_p50_ms</strong><span>ms </span></div><b>2977</b><div class="bar"><i style="width:100.0%"></i></div></div><div class="barrow"><div><strong>concurrency / ttft_p99_ms</strong><span>ms </span></div><b>2978</b><div class="bar"><i style="width:100.0%"></i></div></div><div class="barrow"><div><strong>concurrency / agg_decode_tps</strong><span>tok/s </span></div><b>72.4</b><div class="bar"><i style="width:72.4%"></i></div></div></section>
+    <section class="panel"><h2>Domain Breakdown</h2><p class="muted">No eval domain rows for this run.</p></section>
+  </section>
+  <section class="panel"><h2>Per-Scenario Results</h2><p class="muted">No per-scenario eval rows for this run.</p></section>
+  <section class="panel"><h2>Rendered Summary</h2><h1>Tier 2 — Inference (DeepSeek-V4-Flash-throughput-2Spark-20260701-20260701-000411)</h1>
+<ul>
+<li>model <code>deepseek-v4-flash</code> @ <code>http://10.10.10.1:8000/v1</code>  topology <code>unknown</code> parallelism <code>2</code> spec_decode <code>mtp2</code></li>
+</ul>
+<h2>Single-stream decode</h2>
+<table><thead><tr><th>context</th><th>TTFT (ms)</th><th>decode tok/s</th><th>TPOT (ms)</th><th>prefill tok/s</th><th>out toks</th></tr></thead><tbody>
+<tr><td>1008</td><td>1123</td><td>38.4</td><td>26.1</td><td>898</td><td>512</td></tr>
+<tr><td>7997</td><td>4021</td><td>38.5</td><td>26.0</td><td>1989</td><td>512</td></tr>
+<tr><td>31951</td><td>13219</td><td>38.1</td><td>26.3</td><td>2417</td><td>512</td></tr>
+</tbody></table>
+<h2>Throughput under concurrency</h2>
+<table><thead><tr><th>batch</th><th>agg decode tok/s</th><th>per-stream tok/s</th><th>TTFT p50 (ms)</th><th>TTFT p99 (ms)</th><th>completed</th></tr></thead><tbody>
+<tr><td>1</td><td>38</td><td>39.5</td><td>508</td><td>508</td><td>1/1</td></tr>
+<tr><td>2</td><td>55</td><td>33.0</td><td>2977</td><td>2978</td><td>2/2</td></tr>
+<tr><td>4</td><td>72</td><td>19.3</td><td>687</td><td>688</td><td>4/4</td></tr>
+<tr><td>8</td><td>98</td><td>23.6</td><td>1677</td><td>24589</td><td>8/8</td></tr>
+</tbody></table></section>
+  <section class="panel"><h2>All Recorded Rows</h2><table><thead><tr><th>tier</th><th>workload</th><th>metric</th><th>value</th><th>unit</th><th>context</th><th>batch</th><th>notes</th></tr></thead><tbody><tr><td>tier2</td><td>single_stream</td><td>ttft_ms</td><td>1122.9</td><td>ms</td><td>1008</td><td></td><td></td></tr><tr><td>tier2</td><td>single_stream</td><td>decode_tps</td><td>38.35</td><td>tok/s</td><td>1008</td><td></td><td></td></tr><tr><td>tier2</td><td>single_stream</td><td>tpot_ms</td><td>26.13</td><td>ms</td><td>1008</td><td></td><td></td></tr><tr><td>tier2</td><td>single_stream</td><td>prefill_tps</td><td>897.7</td><td>tok/s</td><td>1008</td><td></td><td>prompt=1008tok</td></tr><tr><td>tier2</td><td>single_stream</td><td>output_tokens</td><td>512</td><td>tok</td><td>1008</td><td></td><td></td></tr><tr><td>tier2</td><td>single_stream</td><td>ttft_ms</td><td>4021.2</td><td>ms</td><td>7997</td><td></td><td></td></tr><tr><td>tier2</td><td>single_stream</td><td>decode_tps</td><td>38.53</td><td>tok/s</td><td>7997</td><td></td><td></td></tr><tr><td>tier2</td><td>single_stream</td><td>tpot_ms</td><td>26.0</td><td>ms</td><td>7997</td><td></td><td></td></tr><tr><td>tier2</td><td>single_stream</td><td>prefill_tps</td><td>1988.7</td><td>tok/s</td><td>7997</td><td></td><td>prompt=7997tok</td></tr><tr><td>tier2</td><td>single_stream</td><td>output_tokens</td><td>512</td><td>tok</td><td>7997</td><td></td><td></td></tr><tr><td>tier2</td><td>single_stream</td><td>ttft_ms</td><td>13218.6</td><td>ms</td><td>31951</td><td></td><td></td></tr><tr><td>tier2</td><td>single_stream</td><td>decode_tps</td><td>38.07</td><td>tok/s</td><td>31951</td><td></td><td></td></tr><tr><td>tier2</td><td>single_stream</td><td>tpot_ms</td><td>26.32</td><td>ms</td><td>31951</td><td></td><td></td></tr><tr><td>tier2</td><td>single_stream</td><td>prefill_tps</td><td>2417.1</td><td>tok/s</td><td>31951</td><td></td><td>prompt=31951tok</td></tr><tr><td>tier2</td><td>single_stream</td><td>output_tokens</td><td>512</td><td>tok</td><td>31951</td><td></td><td></td></tr><tr><td>tier2</td><td>concurrency</td><td>agg_decode_tps</td><td>37.8</td><td>tok/s</td><td></td><td>1</td><td></td></tr><tr><td>tier2</td><td>concurrency</td><td>per_stream_tps</td><td>39.46</td><td>tok/s</td><td></td><td>1</td><td></td></tr><tr><td>tier2</td><td>concurrency</td><td>ttft_p50_ms</td><td>507.9</td><td>ms</td><td></td><td>1</td><td></td></tr><tr><td>tier2</td><td>concurrency</td><td>ttft_p99_ms</td><td>507.9</td><td>ms</td><td></td><td>1</td><td></td></tr><tr><td>tier2</td><td>concurrency</td><td>agg_decode_tps</td><td>55.3</td><td>tok/s</td><td></td><td>2</td><td></td></tr><tr><td>tier2</td><td>concurrency</td><td>per_stream_tps</td><td>33.05</td><td>tok/s</td><td></td><td>2</td><td></td></tr><tr><td>tier2</td><td>concurrency</td><td>ttft_p50_ms</td><td>2977.0</td><td>ms</td><td></td><td>2</td><td></td></tr><tr><td>tier2</td><td>concurrency</td><td>ttft_p99_ms</td><td>2978.0</td><td>ms</td><td></td><td>2</td><td></td></tr><tr><td>tier2</td><td>concurrency</td><td>agg_decode_tps</td><td>72.4</td><td>tok/s</td><td></td><td>4</td><td></td></tr><tr><td>tier2</td><td>concurrency</td><td>per_stream_tps</td><td>19.34</td><td>tok/s</td><td></td><td>4</td><td></td></tr><tr><td>tier2</td><td>concurrency</td><td>ttft_p50_ms</td><td>686.9</td><td>ms</td><td></td><td>4</td><td></td></tr><tr><td>tier2</td><td>concurrency</td><td>ttft_p99_ms</td><td>687.8</td><td>ms</td><td></td><td>4</td><td></td></tr><tr><td>tier2</td><td>concurrency</td><td>agg_decode_tps</td><td>98.2</td><td>tok/s</td><td></td><td>8</td><td></td></tr><tr><td>tier2</td><td>concurrency</td><td>per_stream_tps</td><td>23.58</td><td>tok/s</td><td></td><td>8</td><td></td></tr><tr><td>tier2</td><td>concurrency</td><td>ttft_p50_ms</td><td>1677.3</td><td>ms</td><td></td><td>8</td><td></td></tr><tr><td>tier2</td><td>concurrency</td><td>ttft_p99_ms</td><td>24588.6</td><td>ms</td><td></td><td>8</td><td></td></tr></tbody></table></section>
+  <section class="panel">
+    <h2>Raw Artifacts</h2>
+    <details><summary>Raw markdown summary</summary><pre># Tier 2 — Inference (DeepSeek-V4-Flash-throughput-2Spark-20260701-20260701-000411)
+
+- model `deepseek-v4-flash` @ `http://10.10.10.1:8000/v1`  topology `unknown` parallelism `2` spec_decode `mtp2`
+
+## Single-stream decode
+
+| context | TTFT (ms) | decode tok/s | TPOT (ms) | prefill tok/s | out toks |
+|--------:|----------:|-------------:|----------:|--------------:|---------:|
+| 1008 | 1123 | 38.4 | 26.1 | 898 | 512 |
+| 7997 | 4021 | 38.5 | 26.0 | 1989 | 512 |
+| 31951 | 13219 | 38.1 | 26.3 | 2417 | 512 |
+
+## Throughput under concurrency
+
+| batch | agg decode tok/s | per-stream tok/s | TTFT p50 (ms) | TTFT p99 (ms) | completed |
+|------:|-----------------:|-----------------:|--------------:|--------------:|----------:|
+| 1 | 38 | 39.5 | 508 | 508 | 1/1 |
+| 2 | 55 | 33.0 | 2977 | 2978 | 2/2 |
+| 4 | 72 | 19.3 | 687 | 688 | 4/4 |
+| 8 | 98 | 23.6 | 1677 | 24589 | 8/8 |
+</pre></details>
+    <details><summary>Raw JSON rows</summary><pre>{
+  &quot;run_id&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701-20260701-000411&quot;,
+  &quot;rows&quot;: [
+    {
+      &quot;run_id&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701-20260701-000411&quot;,
+      &quot;timestamp&quot;: &quot;2026-07-01T00:04:26&quot;,
+      &quot;tier&quot;: &quot;tier2&quot;,
+      &quot;model&quot;: &quot;deepseek-v4-flash&quot;,
+      &quot;label&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701&quot;,
+      &quot;endpoint&quot;: &quot;http://10.10.10.1:8000/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;2&quot;,
+      &quot;context&quot;: 1008,
+      &quot;batch&quot;: &quot;&quot;,
+      &quot;spec_decode&quot;: &quot;mtp2&quot;,
+      &quot;workload&quot;: &quot;single_stream&quot;,
+      &quot;metric&quot;: &quot;ttft_ms&quot;,
+      &quot;value&quot;: 1122.9,
+      &quot;unit&quot;: &quot;ms&quot;,
+      &quot;notes&quot;: &quot;&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701-20260701-000411&quot;,
+      &quot;timestamp&quot;: &quot;2026-07-01T00:04:26&quot;,
+      &quot;tier&quot;: &quot;tier2&quot;,
+      &quot;model&quot;: &quot;deepseek-v4-flash&quot;,
+      &quot;label&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701&quot;,
+      &quot;endpoint&quot;: &quot;http://10.10.10.1:8000/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;2&quot;,
+      &quot;context&quot;: 1008,
+      &quot;batch&quot;: &quot;&quot;,
+      &quot;spec_decode&quot;: &quot;mtp2&quot;,
+      &quot;workload&quot;: &quot;single_stream&quot;,
+      &quot;metric&quot;: &quot;decode_tps&quot;,
+      &quot;value&quot;: 38.35,
+      &quot;unit&quot;: &quot;tok/s&quot;,
+      &quot;notes&quot;: &quot;&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701-20260701-000411&quot;,
+      &quot;timestamp&quot;: &quot;2026-07-01T00:04:26&quot;,
+      &quot;tier&quot;: &quot;tier2&quot;,
+      &quot;model&quot;: &quot;deepseek-v4-flash&quot;,
+      &quot;label&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701&quot;,
+      &quot;endpoint&quot;: &quot;http://10.10.10.1:8000/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;2&quot;,
+      &quot;context&quot;: 1008,
+      &quot;batch&quot;: &quot;&quot;,
+      &quot;spec_decode&quot;: &quot;mtp2&quot;,
+      &quot;workload&quot;: &quot;single_stream&quot;,
+      &quot;metric&quot;: &quot;tpot_ms&quot;,
+      &quot;value&quot;: 26.13,
+      &quot;unit&quot;: &quot;ms&quot;,
+      &quot;notes&quot;: &quot;&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701-20260701-000411&quot;,
+      &quot;timestamp&quot;: &quot;2026-07-01T00:04:26&quot;,
+      &quot;tier&quot;: &quot;tier2&quot;,
+      &quot;model&quot;: &quot;deepseek-v4-flash&quot;,
+      &quot;label&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701&quot;,
+      &quot;endpoint&quot;: &quot;http://10.10.10.1:8000/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;2&quot;,
+      &quot;context&quot;: 1008,
+      &quot;batch&quot;: &quot;&quot;,
+      &quot;spec_decode&quot;: &quot;mtp2&quot;,
+      &quot;workload&quot;: &quot;single_stream&quot;,
+      &quot;metric&quot;: &quot;prefill_tps&quot;,
+      &quot;value&quot;: 897.7,
+      &quot;unit&quot;: &quot;tok/s&quot;,
+      &quot;notes&quot;: &quot;prompt=1008tok&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701-20260701-000411&quot;,
+      &quot;timestamp&quot;: &quot;2026-07-01T00:04:26&quot;,
+      &quot;tier&quot;: &quot;tier2&quot;,
+      &quot;model&quot;: &quot;deepseek-v4-flash&quot;,
+      &quot;label&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701&quot;,
+      &quot;endpoint&quot;: &quot;http://10.10.10.1:8000/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;2&quot;,
+      &quot;context&quot;: 1008,
+      &quot;batch&quot;: &quot;&quot;,
+      &quot;spec_decode&quot;: &quot;mtp2&quot;,
+      &quot;workload&quot;: &quot;single_stream&quot;,
+      &quot;metric&quot;: &quot;output_tokens&quot;,
+      &quot;value&quot;: 512,
+      &quot;unit&quot;: &quot;tok&quot;,
+      &quot;notes&quot;: &quot;&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701-20260701-000411&quot;,
+      &quot;timestamp&quot;: &quot;2026-07-01T00:04:43&quot;,
+      &quot;tier&quot;: &quot;tier2&quot;,
+      &quot;model&quot;: &quot;deepseek-v4-flash&quot;,
+      &quot;label&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701&quot;,
+      &quot;endpoint&quot;: &quot;http://10.10.10.1:8000/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;2&quot;,
+      &quot;context&quot;: 7997,
+      &quot;batch&quot;: &quot;&quot;,
+      &quot;spec_decode&quot;: &quot;mtp2&quot;,
+      &quot;workload&quot;: &quot;single_stream&quot;,
+      &quot;metric&quot;: &quot;ttft_ms&quot;,
+      &quot;value&quot;: 4021.2,
+      &quot;unit&quot;: &quot;ms&quot;,
+      &quot;notes&quot;: &quot;&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701-20260701-000411&quot;,
+      &quot;timestamp&quot;: &quot;2026-07-01T00:04:43&quot;,
+      &quot;tier&quot;: &quot;tier2&quot;,
+      &quot;model&quot;: &quot;deepseek-v4-flash&quot;,
+      &quot;label&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701&quot;,
+      &quot;endpoint&quot;: &quot;http://10.10.10.1:8000/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;2&quot;,
+      &quot;context&quot;: 7997,
+      &quot;batch&quot;: &quot;&quot;,
+      &quot;spec_decode&quot;: &quot;mtp2&quot;,
+      &quot;workload&quot;: &quot;single_stream&quot;,
+      &quot;metric&quot;: &quot;decode_tps&quot;,
+      &quot;value&quot;: 38.53,
+      &quot;unit&quot;: &quot;tok/s&quot;,
+      &quot;notes&quot;: &quot;&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701-20260701-000411&quot;,
+      &quot;timestamp&quot;: &quot;2026-07-01T00:04:43&quot;,
+      &quot;tier&quot;: &quot;tier2&quot;,
+      &quot;model&quot;: &quot;deepseek-v4-flash&quot;,
+      &quot;label&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701&quot;,
+      &quot;endpoint&quot;: &quot;http://10.10.10.1:8000/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;2&quot;,
+      &quot;context&quot;: 7997,
+      &quot;batch&quot;: &quot;&quot;,
+      &quot;spec_decode&quot;: &quot;mtp2&quot;,
+      &quot;workload&quot;: &quot;single_stream&quot;,
+      &quot;metric&quot;: &quot;tpot_ms&quot;,
+      &quot;value&quot;: 26.0,
+      &quot;unit&quot;: &quot;ms&quot;,
+      &quot;notes&quot;: &quot;&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701-20260701-000411&quot;,
+      &quot;timestamp&quot;: &quot;2026-07-01T00:04:43&quot;,
+      &quot;tier&quot;: &quot;tier2&quot;,
+      &quot;model&quot;: &quot;deepseek-v4-flash&quot;,
+      &quot;label&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701&quot;,
+      &quot;endpoint&quot;: &quot;http://10.10.10.1:8000/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;2&quot;,
+      &quot;context&quot;: 7997,
+      &quot;batch&quot;: &quot;&quot;,
+      &quot;spec_decode&quot;: &quot;mtp2&quot;,
+      &quot;workload&quot;: &quot;single_stream&quot;,
+      &quot;metric&quot;: &quot;prefill_tps&quot;,
+      &quot;value&quot;: 1988.7,
+      &quot;unit&quot;: &quot;tok/s&quot;,
+      &quot;notes&quot;: &quot;prompt=7997tok&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701-20260701-000411&quot;,
+      &quot;timestamp&quot;: &quot;2026-07-01T00:04:43&quot;,
+      &quot;tier&quot;: &quot;tier2&quot;,
+      &quot;model&quot;: &quot;deepseek-v4-flash&quot;,
+      &quot;label&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701&quot;,
+      &quot;endpoint&quot;: &quot;http://10.10.10.1:8000/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;2&quot;,
+      &quot;context&quot;: 7997,
+      &quot;batch&quot;: &quot;&quot;,
+      &quot;spec_decode&quot;: &quot;mtp2&quot;,
+      &quot;workload&quot;: &quot;single_stream&quot;,
+      &quot;metric&quot;: &quot;output_tokens&quot;,
+      &quot;value&quot;: 512,
+      &quot;unit&quot;: &quot;tok&quot;,
+      &quot;notes&quot;: &quot;&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701-20260701-000411&quot;,
+      &quot;timestamp&quot;: &quot;2026-07-01T00:05:10&quot;,
+      &quot;tier&quot;: &quot;tier2&quot;,
+      &quot;model&quot;: &quot;deepseek-v4-flash&quot;,
+      &quot;label&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701&quot;,
+      &quot;endpoint&quot;: &quot;http://10.10.10.1:8000/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;2&quot;,
+      &quot;context&quot;: 31951,
+      &quot;batch&quot;: &quot;&quot;,
+      &quot;spec_decode&quot;: &quot;mtp2&quot;,
+      &quot;workload&quot;: &quot;single_stream&quot;,
+      &quot;metric&quot;: &quot;ttft_ms&quot;,
+      &quot;value&quot;: 13218.6,
+      &quot;unit&quot;: &quot;ms&quot;,
+      &quot;notes&quot;: &quot;&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701-20260701-000411&quot;,
+      &quot;timestamp&quot;: &quot;2026-07-01T00:05:10&quot;,
+      &quot;tier&quot;: &quot;tier2&quot;,
+      &quot;model&quot;: &quot;deepseek-v4-flash&quot;,
+      &quot;label&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701&quot;,
+      &quot;endpoint&quot;: &quot;http://10.10.10.1:8000/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;2&quot;,
+      &quot;context&quot;: 31951,
+      &quot;batch&quot;: &quot;&quot;,
+      &quot;spec_decode&quot;: &quot;mtp2&quot;,
+      &quot;workload&quot;: &quot;single_stream&quot;,
+      &quot;metric&quot;: &quot;decode_tps&quot;,
+      &quot;value&quot;: 38.07,
+      &quot;unit&quot;: &quot;tok/s&quot;,
+      &quot;notes&quot;: &quot;&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701-20260701-000411&quot;,
+      &quot;timestamp&quot;: &quot;2026-07-01T00:05:10&quot;,
+      &quot;tier&quot;: &quot;tier2&quot;,
+      &quot;model&quot;: &quot;deepseek-v4-flash&quot;,
+      &quot;label&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701&quot;,
+      &quot;endpoint&quot;: &quot;http://10.10.10.1:8000/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;2&quot;,
+      &quot;context&quot;: 31951,
+      &quot;batch&quot;: &quot;&quot;,
+      &quot;spec_decode&quot;: &quot;mtp2&quot;,
+      &quot;workload&quot;: &quot;single_stream&quot;,
+      &quot;metric&quot;: &quot;tpot_ms&quot;,
+      &quot;value&quot;: 26.32,
+      &quot;unit&quot;: &quot;ms&quot;,
+      &quot;notes&quot;: &quot;&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701-20260701-000411&quot;,
+      &quot;timestamp&quot;: &quot;2026-07-01T00:05:10&quot;,
+      &quot;tier&quot;: &quot;tier2&quot;,
+      &quot;model&quot;: &quot;deepseek-v4-flash&quot;,
+      &quot;label&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701&quot;,
+      &quot;endpoint&quot;: &quot;http://10.10.10.1:8000/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;2&quot;,
+      &quot;context&quot;: 31951,
+      &quot;batch&quot;: &quot;&quot;,
+      &quot;spec_decode&quot;: &quot;mtp2&quot;,
+      &quot;workload&quot;: &quot;single_stream&quot;,
+      &quot;metric&quot;: &quot;prefill_tps&quot;,
+      &quot;value&quot;: 2417.1,
+      &quot;unit&quot;: &quot;tok/s&quot;,
+      &quot;notes&quot;: &quot;prompt=31951tok&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701-20260701-000411&quot;,
+      &quot;timestamp&quot;: &quot;2026-07-01T00:05:10&quot;,
+      &quot;tier&quot;: &quot;tier2&quot;,
+      &quot;model&quot;: &quot;deepseek-v4-flash&quot;,
+      &quot;label&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701&quot;,
+      &quot;endpoint&quot;: &quot;http://10.10.10.1:8000/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;2&quot;,
+      &quot;context&quot;: 31951,
+      &quot;batch&quot;: &quot;&quot;,
+      &quot;spec_decode&quot;: &quot;mtp2&quot;,
+      &quot;workload&quot;: &quot;single_stream&quot;,
+      &quot;metric&quot;: &quot;output_tokens&quot;,
+      &quot;value&quot;: 512,
+      &quot;unit&quot;: &quot;tok&quot;,
+      &quot;notes&quot;: &quot;&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701-20260701-000411&quot;,
+      &quot;timestamp&quot;: &quot;2026-07-01T00:05:22&quot;,
+      &quot;tier&quot;: &quot;tier2&quot;,
+      &quot;model&quot;: &quot;deepseek-v4-flash&quot;,
+      &quot;label&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701&quot;,
+      &quot;endpoint&quot;: &quot;http://10.10.10.1:8000/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;2&quot;,
+      &quot;context&quot;: &quot;&quot;,
+      &quot;batch&quot;: 1,
+      &quot;spec_decode&quot;: &quot;mtp2&quot;,
+      &quot;workload&quot;: &quot;concurrency&quot;,
+      &quot;metric&quot;: &quot;agg_decode_tps&quot;,
+      &quot;value&quot;: 37.8,
+      &quot;unit&quot;: &quot;tok/s&quot;,
+      &quot;notes&quot;: &quot;&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701-20260701-000411&quot;,
+      &quot;timestamp&quot;: &quot;2026-07-01T00:05:22&quot;,
+      &quot;tier&quot;: &quot;tier2&quot;,
+      &quot;model&quot;: &quot;deepseek-v4-flash&quot;,
+      &quot;label&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701&quot;,
+      &quot;endpoint&quot;: &quot;http://10.10.10.1:8000/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;2&quot;,
+      &quot;context&quot;: &quot;&quot;,
+      &quot;batch&quot;: 1,
+      &quot;spec_decode&quot;: &quot;mtp2&quot;,
+      &quot;workload&quot;: &quot;concurrency&quot;,
+      &quot;metric&quot;: &quot;per_stream_tps&quot;,
+      &quot;value&quot;: 39.46,
+      &quot;unit&quot;: &quot;tok/s&quot;,
+      &quot;notes&quot;: &quot;&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701-20260701-000411&quot;,
+      &quot;timestamp&quot;: &quot;2026-07-01T00:05:22&quot;,
+      &quot;tier&quot;: &quot;tier2&quot;,
+      &quot;model&quot;: &quot;deepseek-v4-flash&quot;,
+      &quot;label&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701&quot;,
+      &quot;endpoint&quot;: &quot;http://10.10.10.1:8000/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;2&quot;,
+      &quot;context&quot;: &quot;&quot;,
+      &quot;batch&quot;: 1,
+      &quot;spec_decode&quot;: &quot;mtp2&quot;,
+      &quot;workload&quot;: &quot;concurrency&quot;,
+      &quot;metric&quot;: &quot;ttft_p50_ms&quot;,
+      &quot;value&quot;: 507.9,
+      &quot;unit&quot;: &quot;ms&quot;,
+      &quot;notes&quot;: &quot;&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701-20260701-000411&quot;,
+      &quot;timestamp&quot;: &quot;2026-07-01T00:05:22&quot;,
+      &quot;tier&quot;: &quot;tier2&quot;,
+      &quot;model&quot;: &quot;deepseek-v4-flash&quot;,
+      &quot;label&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701&quot;,
+      &quot;endpoint&quot;: &quot;http://10.10.10.1:8000/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;2&quot;,
+      &quot;context&quot;: &quot;&quot;,
+      &quot;batch&quot;: 1,
+      &quot;spec_decode&quot;: &quot;mtp2&quot;,
+      &quot;workload&quot;: &quot;concurrency&quot;,
+      &quot;metric&quot;: &quot;ttft_p99_ms&quot;,
+      &quot;value&quot;: 507.9,
+      &quot;unit&quot;: &quot;ms&quot;,
+      &quot;notes&quot;: &quot;&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701-20260701-000411&quot;,
+      &quot;timestamp&quot;: &quot;2026-07-01T00:05:40&quot;,
+      &quot;tier&quot;: &quot;tier2&quot;,
+      &quot;model&quot;: &quot;deepseek-v4-flash&quot;,
+      &quot;label&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701&quot;,
+      &quot;endpoint&quot;: &quot;http://10.10.10.1:8000/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;2&quot;,
+      &quot;context&quot;: &quot;&quot;,
+      &quot;batch&quot;: 2,
+      &quot;spec_decode&quot;: &quot;mtp2&quot;,
+      &quot;workload&quot;: &quot;concurrency&quot;,
+      &quot;metric&quot;: &quot;agg_decode_tps&quot;,
+      &quot;value&quot;: 55.3,
+      &quot;unit&quot;: &quot;tok/s&quot;,
+      &quot;notes&quot;: &quot;&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701-20260701-000411&quot;,
+      &quot;timestamp&quot;: &quot;2026-07-01T00:05:40&quot;,
+      &quot;tier&quot;: &quot;tier2&quot;,
+      &quot;model&quot;: &quot;deepseek-v4-flash&quot;,
+      &quot;label&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701&quot;,
+      &quot;endpoint&quot;: &quot;http://10.10.10.1:8000/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;2&quot;,
+      &quot;context&quot;: &quot;&quot;,
+      &quot;batch&quot;: 2,
+      &quot;spec_decode&quot;: &quot;mtp2&quot;,
+      &quot;workload&quot;: &quot;concurrency&quot;,
+      &quot;metric&quot;: &quot;per_stream_tps&quot;,
+      &quot;value&quot;: 33.05,
+      &quot;unit&quot;: &quot;tok/s&quot;,
+      &quot;notes&quot;: &quot;&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701-20260701-000411&quot;,
+      &quot;timestamp&quot;: &quot;2026-07-01T00:05:40&quot;,
+      &quot;tier&quot;: &quot;tier2&quot;,
+      &quot;model&quot;: &quot;deepseek-v4-flash&quot;,
+      &quot;label&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701&quot;,
+      &quot;endpoint&quot;: &quot;http://10.10.10.1:8000/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;2&quot;,
+      &quot;context&quot;: &quot;&quot;,
+      &quot;batch&quot;: 2,
+      &quot;spec_decode&quot;: &quot;mtp2&quot;,
+      &quot;workload&quot;: &quot;concurrency&quot;,
+      &quot;metric&quot;: &quot;ttft_p50_ms&quot;,
+      &quot;value&quot;: 2977.0,
+      &quot;unit&quot;: &quot;ms&quot;,
+      &quot;notes&quot;: &quot;&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701-20260701-000411&quot;,
+      &quot;timestamp&quot;: &quot;2026-07-01T00:05:40&quot;,
+      &quot;tier&quot;: &quot;tier2&quot;,
+      &quot;model&quot;: &quot;deepseek-v4-flash&quot;,
+      &quot;label&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701&quot;,
+      &quot;endpoint&quot;: &quot;http://10.10.10.1:8000/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;2&quot;,
+      &quot;context&quot;: &quot;&quot;,
+      &quot;batch&quot;: 2,
+      &quot;spec_decode&quot;: &quot;mtp2&quot;,
+      &quot;workload&quot;: &quot;concurrency&quot;,
+      &quot;metric&quot;: &quot;ttft_p99_ms&quot;,
+      &quot;value&quot;: 2978.0,
+      &quot;unit&quot;: &quot;ms&quot;,
+      &quot;notes&quot;: &quot;&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701-20260701-000411&quot;,
+      &quot;timestamp&quot;: &quot;2026-07-01T00:06:07&quot;,
+      &quot;tier&quot;: &quot;tier2&quot;,
+      &quot;model&quot;: &quot;deepseek-v4-flash&quot;,
+      &quot;label&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701&quot;,
+      &quot;endpoint&quot;: &quot;http://10.10.10.1:8000/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;2&quot;,
+      &quot;context&quot;: &quot;&quot;,
+      &quot;batch&quot;: 4,
+      &quot;spec_decode&quot;: &quot;mtp2&quot;,
+      &quot;workload&quot;: &quot;concurrency&quot;,
+      &quot;metric&quot;: &quot;agg_decode_tps&quot;,
+      &quot;value&quot;: 72.4,
+      &quot;unit&quot;: &quot;tok/s&quot;,
+      &quot;notes&quot;: &quot;&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701-20260701-000411&quot;,
+      &quot;timestamp&quot;: &quot;2026-07-01T00:06:07&quot;,
+      &quot;tier&quot;: &quot;tier2&quot;,
+      &quot;model&quot;: &quot;deepseek-v4-flash&quot;,
+      &quot;label&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701&quot;,
+      &quot;endpoint&quot;: &quot;http://10.10.10.1:8000/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;2&quot;,
+      &quot;context&quot;: &quot;&quot;,
+      &quot;batch&quot;: 4,
+      &quot;spec_decode&quot;: &quot;mtp2&quot;,
+      &quot;workload&quot;: &quot;concurrency&quot;,
+      &quot;metric&quot;: &quot;per_stream_tps&quot;,
+      &quot;value&quot;: 19.34,
+      &quot;unit&quot;: &quot;tok/s&quot;,
+      &quot;notes&quot;: &quot;&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701-20260701-000411&quot;,
+      &quot;timestamp&quot;: &quot;2026-07-01T00:06:07&quot;,
+      &quot;tier&quot;: &quot;tier2&quot;,
+      &quot;model&quot;: &quot;deepseek-v4-flash&quot;,
+      &quot;label&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701&quot;,
+      &quot;endpoint&quot;: &quot;http://10.10.10.1:8000/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;2&quot;,
+      &quot;context&quot;: &quot;&quot;,
+      &quot;batch&quot;: 4,
+      &quot;spec_decode&quot;: &quot;mtp2&quot;,
+      &quot;workload&quot;: &quot;concurrency&quot;,
+      &quot;metric&quot;: &quot;ttft_p50_ms&quot;,
+      &quot;value&quot;: 686.9,
+      &quot;unit&quot;: &quot;ms&quot;,
+      &quot;notes&quot;: &quot;&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701-20260701-000411&quot;,
+      &quot;timestamp&quot;: &quot;2026-07-01T00:06:07&quot;,
+      &quot;tier&quot;: &quot;tier2&quot;,
+      &quot;model&quot;: &quot;deepseek-v4-flash&quot;,
+      &quot;label&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701&quot;,
+      &quot;endpoint&quot;: &quot;http://10.10.10.1:8000/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;2&quot;,
+      &quot;context&quot;: &quot;&quot;,
+      &quot;batch&quot;: 4,
+      &quot;spec_decode&quot;: &quot;mtp2&quot;,
+      &quot;workload&quot;: &quot;concurrency&quot;,
+      &quot;metric&quot;: &quot;ttft_p99_ms&quot;,
+      &quot;value&quot;: 687.8,
+      &quot;unit&quot;: &quot;ms&quot;,
+      &quot;notes&quot;: &quot;&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701-20260701-000411&quot;,
+      &quot;timestamp&quot;: &quot;2026-07-01T00:06:48&quot;,
+      &quot;tier&quot;: &quot;tier2&quot;,
+      &quot;model&quot;: &quot;deepseek-v4-flash&quot;,
+      &quot;label&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701&quot;,
+      &quot;endpoint&quot;: &quot;http://10.10.10.1:8000/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;2&quot;,
+      &quot;context&quot;: &quot;&quot;,
+      &quot;batch&quot;: 8,
+      &quot;spec_decode&quot;: &quot;mtp2&quot;,
+      &quot;workload&quot;: &quot;concurrency&quot;,
+      &quot;metric&quot;: &quot;agg_decode_tps&quot;,
+      &quot;value&quot;: 98.2,
+      &quot;unit&quot;: &quot;tok/s&quot;,
+      &quot;notes&quot;: &quot;&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701-20260701-000411&quot;,
+      &quot;timestamp&quot;: &quot;2026-07-01T00:06:48&quot;,
+      &quot;tier&quot;: &quot;tier2&quot;,
+      &quot;model&quot;: &quot;deepseek-v4-flash&quot;,
+      &quot;label&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701&quot;,
+      &quot;endpoint&quot;: &quot;http://10.10.10.1:8000/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;2&quot;,
+      &quot;context&quot;: &quot;&quot;,
+      &quot;batch&quot;: 8,
+      &quot;spec_decode&quot;: &quot;mtp2&quot;,
+      &quot;workload&quot;: &quot;concurrency&quot;,
+      &quot;metric&quot;: &quot;per_stream_tps&quot;,
+      &quot;value&quot;: 23.58,
+      &quot;unit&quot;: &quot;tok/s&quot;,
+      &quot;notes&quot;: &quot;&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701-20260701-000411&quot;,
+      &quot;timestamp&quot;: &quot;2026-07-01T00:06:48&quot;,
+      &quot;tier&quot;: &quot;tier2&quot;,
+      &quot;model&quot;: &quot;deepseek-v4-flash&quot;,
+      &quot;label&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701&quot;,
+      &quot;endpoint&quot;: &quot;http://10.10.10.1:8000/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;2&quot;,
+      &quot;context&quot;: &quot;&quot;,
+      &quot;batch&quot;: 8,
+      &quot;spec_decode&quot;: &quot;mtp2&quot;,
+      &quot;workload&quot;: &quot;concurrency&quot;,
+      &quot;metric&quot;: &quot;ttft_p50_ms&quot;,
+      &quot;value&quot;: 1677.3,
+      &quot;unit&quot;: &quot;ms&quot;,
+      &quot;notes&quot;: &quot;&quot;
+    },
+    {
+      &quot;run_id&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701-20260701-000411&quot;,
+      &quot;timestamp&quot;: &quot;2026-07-01T00:06:48&quot;,
+      &quot;tier&quot;: &quot;tier2&quot;,
+      &quot;model&quot;: &quot;deepseek-v4-flash&quot;,
+      &quot;label&quot;: &quot;DeepSeek-V4-Flash-throughput-2Spark-20260701&quot;,
+      &quot;endpoint&quot;: &quot;http://10.10.10.1:8000/v1&quot;,
+      &quot;topology&quot;: &quot;unknown&quot;,
+      &quot;parallelism&quot;: &quot;2&quot;,
+      &quot;context&quot;: &quot;&quot;,
+      &quot;batch&quot;: 8,
+      &quot;spec_decode&quot;: &quot;mtp2&quot;,
+      &quot;workload&quot;: &quot;concurrency&quot;,
+      &quot;metric&quot;: &quot;ttft_p99_ms&quot;,
+      &quot;value&quot;: 24588.6,
+      &quot;unit&quot;: &quot;ms&quot;,
+      &quot;notes&quot;: &quot;&quot;
+    }
+  ]
+}</pre></details>
+  </section>
+</main>
+</body>
+</html>
