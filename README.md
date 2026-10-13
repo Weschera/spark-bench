@@ -32,18 +32,36 @@ v7.0 scores are not comparable with v6.x.
 
 ## Leaderboard
 
-### Latest: v7.0 uncapped cohort (October 2026)
+### Latest: v7.0 ladder (October 12, 2026)
+
+33 valid full runs: local deployments on DGX Sparks and a Mac Studio, plus the free models on Nous Portal. 80 scenarios, 2 repeats, uncapped, card sampling. Full tables with quant, engine, recipe and score components: [`results/comparisons/2026-10-12-v7-ladder`](results/comparisons/2026-10-12-v7-ladder/README.md).
+
+**Thinking ON**
 
 | # | Deployment | Hardware | TrueScore |
 |---:|---|---|---:|
-| 1 | RED-SNOW-5.3-Flash 2.49bpw SAGE EXL3, exllamav3 + MTP | 1 Spark | **85.1** |
-| 2 | GLM-5.3-Flash EXL3 4bpw, TensorFold + DFlash2 | 2 Sparks TP2 | **84.8** |
-| 3 | Qwen3.8-27B MLX-4bit, TensorFold + DFlash2 | 1 Spark | **82.9** |
-| 4 | Qwen3.8-Flash-Next NVFP4, vLLM TP2+EP+MTP3 | 2 Sparks | **79.4** |
-| 5 | Qwen3.8-Flash-Next MLX-4bit, TensorFold + MTP | 1 Spark | **78.5** |
-| 6 | Qwen3.8-Flash-Next NVFP4, TensorFold Zig | 2 Sparks TP2 | **77.9** |
+| 1 | missingno (stealth model, Nous Portal free API, thinking always on) | hosted | **91.2** |
+| 2 | GLM-5.3-Flash EXL3 4bpw, TensorFold + DFlash2 | 2 Sparks TP2 | **88.9** |
+| 3 | DeepSeek-V4.1-Flash EXL3 2.9bpw, vLLM + DSpark | 2 Sparks TP2 | **88.7** |
+| 4 | RED-SNOW-5.3-Flash EXL3 4.91bpw, TensorFold + DFlash2 (unclosed-think fix) | 2 Sparks TP2 | **87.7** |
+| 5 | Step 5 preview (Nous Portal free API, thinking always on) | hosted | **84.2** |
 
-80 scenarios, 2 repeats, thinking off, uncapped, grader `15c65bc`, 0 transport errors. Rows are deployments: engine, quant, Spark count and sampling differ, and gaps under about 1 point are noise. Caveats and per-run reports are in [`results/comparisons/2026-10-07-v7-cohort`](results/comparisons/2026-10-07-v7-cohort/README.md).
+**Thinking OFF (top 10 of 28)**
+
+| # | Deployment | Hardware | TrueScore |
+|---:|---|---|---:|
+| 1 | Nemotron-3-Ultra 550B NVFP4, SGLang TP4+EP4 | 4 Sparks TP4 | **90.0** |
+| 2 | DeepSeek-V4.1-Flash EXL3 2.9bpw, vLLM + DSpark | 2 Sparks TP2 | **89.5** |
+| 3 | RED-SNOW-5.3-Flash EXL3 4.91bpw, TensorFold + DFlash2 | 2 Sparks TP2 | **87.0** |
+| 4 | Qwen3.8-27B BF16, mlx-lm | Mac Studio | **86.7** |
+| 5 | RED-SNOW-5.3-Flash EXL3 2.49bpw, exllamav3 + MTP | 1 Spark | **85.1** |
+| 6 | GLM-5.3-Flash EXL3 4bpw, TensorFold + DFlash2 | 2 Sparks TP2 | **84.8** |
+| 7 | Qwen3.8-27B MLX 8-bit, TensorFold + DFlash2 | Mac Studio | **84.7** |
+| 8 | Laguna XS 2.1 (Nous Portal free API) | hosted | **84.6** |
+| 9 | Ling 3.1 Flash (Nous Portal free API) | hosted | **84.5** |
+| 10 | GLM-5.3 (full) EXL3 3.38bpw, TensorFold + DFlash2 | 4 Sparks TP4 | **84.4** |
+
+Rows are deployments, not models; gaps under about 1 point are noise. Hosted rows are ranked on quality only (their latency includes the internet). The first six-run v7.0 cohort is still in [`results/comparisons/2026-10-07-v7-cohort`](results/comparisons/2026-10-07-v7-cohort/README.md).
 
 ### Previous: v6.8.0 uncapped comparison
 
